@@ -5,9 +5,22 @@
   "dependencies": {
     "sirop": "^0.0.2"
   },
-  "pkg": {
-    "scripts": "lib/**/*.js",
-    "targets": [ "node17-linux-x64", "node17-linux-arm64" ],
-    "outputPath": "dist"
-  }
+  "bin": {
+    "flg": "lib/index.js",
+    "flowge": "lib/index.js"
+  },
+  "name": "flowge",
+  "description": "Flowge is the official language of Rantemma",
+  "version": "0.0.1",
+  "main": "lib/module.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rantemma/flowge.git"
+  },
+  "author": "YiraSan",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/rantemma/flowge/issues"
+  },
+  "homepage": "https://github.com/rantemma/flowge#readme"
 }
