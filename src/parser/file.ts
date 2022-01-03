@@ -30,13 +30,3 @@ export function parseFile(string: string) {
     parser.run(string);
 
 }
-
-parseFile(`
-
-static thread Main {
-
-
-
-}
-
-`)
