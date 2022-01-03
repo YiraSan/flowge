@@ -1,18 +1,17 @@
 {
-  "devDependencies": {
-    "@types/node": "^17.0.6"
-  },
-  "dependencies": {
-    "sirop": "^0.0.2"
-  },
+  
   "bin": {
-    "flg": "lib/index.js",
-    "flowge": "lib/index.js"
+    "flg": "flg.js"
   },
+
   "name": "flowge",
   "description": "Flowge is the official language of Rantemma",
+
   "version": "0.0.1",
+  "buildname": "eclipse",
+
   "main": "lib/module.js",
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rantemma/flowge.git"
@@ -22,5 +21,16 @@
   "bugs": {
     "url": "https://github.com/rantemma/flowge/issues"
   },
-  "homepage": "https://github.com/rantemma/flowge#readme"
+  "homepage": "https://github.com/rantemma/flowge#readme",
+
+  "devDependencies": {
+    "@types/node": "^17.0.6"
+  },
+
+  "dependencies": {
+    "args": "^5.0.1",
+    "chalk": "^5.0.0",
+    "sirop": "^0.0.3"
+  }
+
 }
