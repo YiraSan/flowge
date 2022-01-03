@@ -1,3 +1,5 @@
-import { Parser } from 'sirop';
+import fs from 'fs';
 
-const parser = new Parser();
+const dir = fs.readdirSync("./project/")
+
+console.log(dir)
