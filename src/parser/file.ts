@@ -20,7 +20,7 @@ export function parseFile(string: string) {
 
             const content = matched.content[0].wrapperContent;
 
-            console.log(isStatic, flag, name, content);
+            console.log("static:", isStatic, "\nflag:", flag, "\nname:", name, content);
 
             return true;
 
