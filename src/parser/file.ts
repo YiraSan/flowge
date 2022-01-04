@@ -1,8 +1,37 @@
 import { Parser } from 'sirop';
+import { ValidPath } from './global';
 
-export function parseFile(string: string) {
+interface FileDefinition {
+    imports: string[][],
+}
+
+export function parseFile(string: string): FileDefinition {
 
     const parser = new Parser();
+
+    let def: FileDefinition = {
+        imports: [],
+    }
+
+    // import
+    parser.root({
+        "expression": "<import:import> <pkg:$string^semicolon>",
+        "validate": (matched) => {
+
+            const namespace = matched.pkg.map(v=>v.content);
+            const typescriptIsDump = matched.pkg.map(v=>v.content==null?"{.}":v.content);
+    
+            if (ValidPath.test(namespace.join(""))) {
+                def.imports.push(typescriptIsDump);
+            } else {
+                console.log("Invalid Path:", namespace.join(""))
+                process.exit();
+            }
+
+            return true;
+
+        }
+    })
 
     // Thread
     parser.root({
@@ -29,4 +58,8 @@ export function parseFile(string: string) {
 
     parser.run(string);
 
+    return def;
+
 }
+
+console.log(parseFile("import test.test;"))
