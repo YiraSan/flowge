@@ -1,8 +1,14 @@
-import { Parser } from 'sirop';
+import { formatToExpr, Parser } from 'sirop';
 import { ValidPath } from './global';
+import { parseThread, ThreadPrototype } from './object/thread';
 
-interface FileDefinition {
+export interface FileDefinition {
     imports: string[][],
+    threads: {[key: string]: {
+        prototype: ThreadPrototype,
+        flag: "public" | "private" | "local",
+        isStatic: boolean,
+    }}
 }
 
 export function parseFile(string: string): FileDefinition {
@@ -11,7 +17,18 @@ export function parseFile(string: string): FileDefinition {
 
     let def: FileDefinition = {
         imports: [],
+        threads: {},
     }
+
+    parser.onUncaught((token)=>{
+        console.log("Uncaught Token:", token)
+    })
+
+    // semicolon
+    parser.root({
+        "expression": "<;:;>",
+        "validate": ()=>true
+    })
 
     // import
     parser.root({
@@ -23,19 +40,18 @@ export function parseFile(string: string): FileDefinition {
     
             if (ValidPath.test(namespace.join(""))) {
                 def.imports.push(typescriptIsDump);
+                return true;
             } else {
                 console.log("Invalid Path:", namespace.join(""))
                 process.exit();
             }
-
-            return true;
-
+            
         }
     })
 
     // Thread
     parser.root({
-        "expression": "[flag:public|private|local] [static:static] <kind:thread> <name:$string> <content:$curly_bracket>",
+        "expression": "[flag:public|private|local] [static:static] <thread:thread> <name:$string> <content:$curly_bracket>",
         "validate": (matched) => {
 
             const isStatic = matched.static != null;
@@ -49,7 +65,17 @@ export function parseFile(string: string): FileDefinition {
 
             const content = matched.content[0].wrapperContent;
 
-            console.log("static:", isStatic, "\nflag:", flag, "\nname:", name, content);
+            if (typeof name !== "string") return false;
+            if (flag !== "public" && flag !== "private" && flag !== "local") return false;
+            if (content == null) return false;
+
+            const proto = parseThread(content);
+
+            def.threads[name] = {
+                flag: flag,
+                prototype: proto,
+                isStatic: isStatic,
+            };
 
             return true;
 
@@ -61,5 +87,3 @@ export function parseFile(string: string): FileDefinition {
     return def;
 
 }
-
-console.log(parseFile("import test.test;"))
