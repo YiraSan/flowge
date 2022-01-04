@@ -24,12 +24,6 @@ export function parseFile(string: string): FileDefinition {
         console.log("Uncaught Token:", token)
     })
 
-    // semicolon
-    parser.root({
-        "expression": "<;:;>",
-        "validate": ()=>true
-    })
-
     // import
     parser.root({
         "expression": "<import:import> <pkg:$string^semicolon>",
