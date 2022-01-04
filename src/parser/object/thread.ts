@@ -24,6 +24,10 @@ export function parseThread(string: string|Token[]): ThreadPrototype {
         methods: {},
     }
 
+    parser.onUncaught((token)=>{
+        console.log("Uncaught Token:", token)
+    })
+
     // Field
     parser.root({
         "expression": "<flag:public|private|safe> <type:$string> <name:$string> <_:=|;> [content^semicolon]",
@@ -61,6 +65,15 @@ export function parseThread(string: string|Token[]): ThreadPrototype {
             return true;
         }
     })
+
+    // Method
+    parser.root({
+        expression: "<flag:public|private|safe> <type:$string> <name:$string> <args:$parenthesis> <content:$curly_bracket>",
+        validate: (matched) => {
+            console.log(matched)
+            return true;
+        }
+    });
 
     parser.run(string);
 
