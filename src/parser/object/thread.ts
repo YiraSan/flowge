@@ -7,6 +7,12 @@ export interface ThreadPrototype {
         type: string,
         value: any,
     }},
+    methods: {[key: string]: {
+        flag: "public" | "private" | "safe",
+        type: string,
+        args: string[][],
+        instruction: string[],
+    }},
 }
 
 export function parseThread(string: string|Token[]): ThreadPrototype {
@@ -15,6 +21,7 @@ export function parseThread(string: string|Token[]): ThreadPrototype {
 
     let proto: ThreadPrototype = {
         fields: {},
+        methods: {},
     }
 
     // Field

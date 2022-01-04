@@ -55,12 +55,7 @@ export function parseFile(string: string): FileDefinition {
         "validate": (matched) => {
 
             const isStatic = matched.static != null;
-
-            const flag = 
-                matched.flag != null ? 
-                    matched.flag[0].content
-                : "local";
-
+            const flag = matched.flag[0].content || "local";
             const name = matched.name[0].content;
 
             const content = matched.content[0].wrapperContent;
