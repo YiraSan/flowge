@@ -1,7 +1,7 @@
 import { Token } from 'rale';
 import { Parser } from 'sirop';
 
-interface ThreadPrototype {
+export interface ThreadPrototype {
     fields: {[key: string]: {
         flag: "public" | "private" | "safe",
         type: string,
