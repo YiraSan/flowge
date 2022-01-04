@@ -3,6 +3,7 @@
 //#region import
 
 const fs = require('fs');
+const colors = require('colors');
 
 //#endregion import
 
@@ -10,42 +11,13 @@ const fs = require('fs');
 
 const term = {
 
-  effect: {
-    reset: "\x1b[0m",
-    bright: "\x1b[1m",
-    underscore: "\x1b[4m",
-    reverse: "\x1b[7m",
-  },
-
-  textColor: {
-    black: "\x1b[30m",
-    red: "\x1b[31m",
-    green: "\x1b[32m",
-    yellow: "\x1b[33m",
-    blue: "\x1b[34m",
-    magenta: "\x1b[35m",
-    cyan: "\x1b[36m",
-    white: "\x1b[37m",
-  },
-
-  background: {
-    black: "\x1b[40m",
-    red: "\x1b[41m",
-    green: "\x1b[42m",
-    yellow: "\x1b[43m",
-    blue: "\x1b[44m",
-    magenta: "\x1b[45m",
-    cyan: "\x1b[46m",
-    white: "\x1b[47m",
-  },
-
   rtag: () => {
-    term.print(term.effect.bright + term.textColor.black + "[ 🐲 Flowge ]")
+    term.print("[ 🐲 Flowge ]".gray)
     return term;
   },
 
   print: (str) => {
-    process.stdout.write(term.effect.reset + str + term.effect.reset);
+    process.stdout.write(str+"".reset);
     return term;
   },
 
@@ -66,23 +38,11 @@ const term = {
 
   tab: (str) => {
     return "    "+str.split("\n").join("\n    ");
-  },
-
-  color: {
-
-    yellow: (str) => {
-      return term.textColor.yellow+str+term.effect.reset;
-    },
-
-    gray: (str) => {
-      return term.effect.bright+term.textColor.black+str+term.effect.reset;
-    }
-
-  },
+  }
 
 }
 
-const version = `${term.color.yellow(require('./package.json').buildname.toUpperCase())} ${require('./package.json').version}`;
+const version = `${require('./package.json').buildname.toUpperCase().yellow} ${require('./package.json').version}`;
 
 //#endregion init
 
@@ -112,7 +72,7 @@ if (commandArgs[0] === "init") {
 
   if (helpFlag) {
 
-    term.print(`Usage: ${term.color.yellow("init")} [--force]`);
+    term.print(`Usage: ${"init".yellow} [--force]`);
 
   } else {
 
@@ -152,7 +112,7 @@ if (commandArgs[0] === "init") {
 
     } else {
 
-      console.log(term.color.yellow("`--force`"), "flag is needed to override this dir.")
+      console.log("`--force`".gray, "flag is needed to override this dir.")
 
     }
 
@@ -161,8 +121,8 @@ if (commandArgs[0] === "init") {
 } else if (helpFlag || commandArgs[0] === "help") {
   term.ln();
   const command = [
-    `help ${term.color.gray("Display this")}`,
-    `init ${term.color.gray("Initialize a new project")}`
+    `help ${"Display this".gray}`,
+    `init ${"Initialize a new project".gray}`
   ];
   term.println("Command:\n"+term.tab(command.join("\n")))
   term.ln();
@@ -171,7 +131,7 @@ if (commandArgs[0] === "init") {
 } else if (versionFlag) {
   term.print(version);
 } else if (commandArgs[0] == null) {
-  term.print(`Is missing a command, no ? Check \`${term.color.yellow("flg")} help\``);
-} else term.print(`Unknown Command. Check \`${term.color.yellow("flg")} help\``);
+  term.print(`Is missing a command, no ? Check \`${"flg".yellow} help\``);
+} else term.print(`Unknown Command. Check \`${"flg".yellow} help\``);
 
 //#endregion command
