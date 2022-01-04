@@ -8,7 +8,7 @@
   "description": "Flowge is the official language of Rantemma",
 
   "version": "0.0.1",
-  "buildname": "eclipse",
+  "buildname": "snowball",
 
   "main": "lib/module.js",
 
