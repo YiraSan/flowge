@@ -1,4 +1,4 @@
-import { formatToExpr, Parser } from 'sirop';
+import { Parser } from 'sirop';
 import { ValidPath } from './global';
 import { parseThread, ThreadPrototype } from './object/thread';
 
