@@ -38,14 +38,16 @@ args.command("init", "Initialize a new project", (name, sub, options) => {
     }, null, 2), "utf-8");
 
     fs.writeFileSync("project/program.x.flg", 
-    'import { println } from system;\n\nprintln("Hello World");'
+    'println("Hello World!");'
     , "utf-8");
+
+    // root file
 
     if (options.useGpl === true) fs.writeFileSync("LICENSE", fs.readFileSync(__dirname + "\\LICENSE", "utf-8"), "utf-8");
 
-    console.log("Project successfully initialized")
+    fs.writeFileSync("README.md", '# A Flowge Project\n\n> Oh wow what awesome stuff here!', 'utf-8');
 
-    
+    console.log("Project successfully initialized")
 
   } else {
 
