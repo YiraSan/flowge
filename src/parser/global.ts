@@ -1,0 +1,1 @@
+export const ValidPath = /^(?:[a-z]\d*(?:\.[a-z])?)+$/i;
