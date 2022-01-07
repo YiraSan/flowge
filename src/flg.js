@@ -9,7 +9,7 @@ const { term } = require('./terminal');
 
 //#region init
 
-const version = `${require('./package.json').buildname.toUpperCase().yellow} ${require('./package.json').version}`;
+const version = `${require('../package.json').buildname.toUpperCase().yellow} ${require('../package.json').version}`;
 
 //#endregion init
 
@@ -72,7 +72,7 @@ if (commandArgs[0] === "init") {
 
       // root file
 
-      fs.writeFileSync("LICENSE", fs.readFileSync(__dirname + "\\LICENSE", "utf-8"), "utf-8");
+      fs.writeFileSync("LICENSE", fs.readFileSync(__dirname + "\\..\\LICENSE", "utf-8"), "utf-8");
       fs.writeFileSync("README.md", '# A Flowge Project\n\n> Oh wow what awesome stuff here!', 'utf-8');
 
       console.log("Project successfully initialized")
