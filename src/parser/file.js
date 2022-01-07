@@ -20,7 +20,7 @@ function parseFile(entry) {
             const namespace = matched.pkg.slice(0, -1).map(v => v.content);
             const typescriptIsDump = matched.pkg.slice(0, -1).map(v => v.content == null ? "{.}" : v.content);
             if (global_1.ValidPath.test(namespace.join(""))) {
-                def.imports.push(typescriptIsDump);
+                def.imports.push(typescriptIsDump.join(""));
                 return true;
             }
             else {
@@ -31,15 +31,15 @@ function parseFile(entry) {
     });
     // Thread
     parser.root({
-        "expression": "[flag:public|private|local] [static] <thread> <name:$string> <content:$curly_bracket>",
+        "expression": "[flag:public|private] [static] <thread> <name:$string> <content:$curly_bracket>",
         "validate": (matched) => {
             const isStatic = matched.static != null;
-            const flag = matched.flag != null ? matched.flag[0].content || "local" : "local";
+            const flag = matched.flag != null ? matched.flag[0].content || "private" : "private";
             const name = matched.name[0].content;
             const content = matched.content[0].wrapperContent;
             if (typeof name !== "string")
                 return false;
-            if (flag !== "public" && flag !== "private" && flag !== "local")
+            if (flag !== "public" && flag !== "private")
                 return false;
             if (content == null)
                 return false;
