@@ -11,7 +11,7 @@ export interface FileDefinition {
     }}
 }
 
-export function parseFile(string: string): FileDefinition {
+export function parseFile(entry: string): FileDefinition {
 
     const parser = new Parser();
 
@@ -26,11 +26,11 @@ export function parseFile(string: string): FileDefinition {
 
     // import
     parser.root({
-        "expression": "<import:import> <pkg:$string^semicolon>",
+        "expression": "<import> <pkg:$string^semicolon>",
         "validate": (matched) => {
-
-            const namespace = matched.pkg.map(v=>v.content);
-            const typescriptIsDump = matched.pkg.map(v=>v.content==null?"{.}":v.content);
+            
+            const namespace = matched.pkg.slice(0, -1).map(v=>v.content);
+            const typescriptIsDump = matched.pkg.slice(0, -1).map(v=>v.content==null?"{.}":v.content);
     
             if (ValidPath.test(namespace.join(""))) {
                 def.imports.push(typescriptIsDump);
@@ -71,7 +71,7 @@ export function parseFile(string: string): FileDefinition {
         }
     })
 
-    parser.run(string);
+    parser.parse(entry);
 
     return def;
 
