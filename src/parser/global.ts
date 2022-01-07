@@ -13,64 +13,26 @@ export interface Args {
 
 export function parseMethodArgs(str: string): Args[] {
 
-    let args: Args[] = [];
+    if (str === "" || str === " ") return [];
 
-    let inType = false;
+    let _argu: Args[] = [];
+    let _args = str.split(",").map(v=>v.split(" ").filter(v=>v!==""));
 
-    let typePast = false;
-    let namePast = false;
+    for (let i = 0; i < _args.length; i++) {
 
-    let type = "";
-    let name = "";
-
-    for (let i = 0; i < str.length; i++) {
-
-        if (namePast === false && typePast === false) {
-
-            if (inType === false) {
-                if (str[i] !== " ") {
-                    inType = true;
-                    type += str[i];
-                }   
-            } else {
-                if (str[i] === " ") {
-                    inType = false;
-                    typePast = true;
-                } else {
-                    type += str[i];
-                }
-            }
-
-        } else if (namePast === false && typePast === true) {
-
-            if (str[i] === "," || i === str.length-1) {
-
-                args.push({
-                    name: i === str.length-1 ? name+str[i] : name,
-                    type: type,
-                })
-
-                // reset
-                inType = false;
-                typePast = false;
-                namePast = false;
-                type = "";
-                name = "";
-
-            } else {
-                name += str[i];
-            }
-            
-        } else if (str[i] !== " ") {
-
-            throw "Unable to parse unexpected token"
-
+        if (_args[i].length > 2) {
+            throw "Unexpected token, there's too much token in a method argument";
+        } else if (_args[i].length < 2) {
+            throw "Missing argument parameters";
         }
+
+        _argu.push({
+            type: _args[i][0],
+            name: _args[i][1],
+        })
 
     }
 
-    args.forEach((v,i)=>args[i].name = v.name.split(" ").join(""))
-
-    return args;
+    return _argu;
 
 }
