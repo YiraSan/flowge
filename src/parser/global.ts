@@ -69,6 +69,8 @@ export function parseMethodArgs(str: string): Args[] {
 
     }
 
+    args.forEach((v,i)=>args[i].name = v.name.split(" ").join(""))
+
     return args;
 
 }
