@@ -82,8 +82,8 @@ if (commandArgs[0] === "init") {
         repo: "https://github.com/rantemma/flowge",
       }, null, 2), "utf-8");
 
-      fs.writeFileSync("project/program.x.flg", 
-      'println("Hello World!");'
+      fs.writeFileSync("src/program.xflg", 
+      'import system;\nuse system:println;\nprintln("Hello World!");'
       , "utf-8");
 
       // root file
