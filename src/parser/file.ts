@@ -3,6 +3,7 @@ import { ValidPath } from './global';
 import { parseThread, ThreadPrototype } from './object/thread';
 
 export interface FileDefinition {
+    usings: string[],
     imports: string[],
     threads: {[key: string]: {
         proto: ThreadPrototype,
@@ -16,6 +17,7 @@ export function parseFile(entry: string): FileDefinition {
     const parser = new Parser();
 
     let def: FileDefinition = {
+        usings: [],
         imports: [],
         threads: {},
     }
@@ -24,22 +26,33 @@ export function parseFile(entry: string): FileDefinition {
         console.log("Uncaught Token:", token)
     })
 
-    // import
+    // use
     parser.root({
-        "expression": "<import> <pkg:$string^semicolon>",
+        "expression": "<use> <path:$string^semicolon>",
         "validate": (matched) => {
             
-            const namespace = matched.pkg.slice(0, -1).map(v=>v.content);
-            const typescriptIsDump = matched.pkg.slice(0, -1).map(v=>v.content==null?"{.}":v.content);
+            const namespace = matched.path.slice(0, -1).map(v=>v.content);
+            const typescriptIsDump = matched.path.slice(0, -1).map(v=>v.content==null?"{.}":v.content);
     
             if (ValidPath.test(namespace.join(""))) {
-                def.imports.push(typescriptIsDump.join(""));
+                def.usings.push(typescriptIsDump.join(""));
                 return true;
             } else {
                 console.log("Invalid Path:", namespace.join(""))
                 process.exit();
             }
             
+        }
+    })
+
+    // import
+    parser.root({
+        "expression": "<import> <pkg:$string> <;>",
+        "validate": (matched) => {
+            if (matched.pkg[0].content != null) {
+                def.imports.push(matched.pkg[0].content);
+            } else return false;
+            return true;
         }
     })
 
