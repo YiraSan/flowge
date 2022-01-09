@@ -3,7 +3,23 @@
 //#region import
 
 const fs = require('fs');
+const path = require('path');
+const { typeCheck } = require('./constructor/check');
+const { convert } = require('./converter');
+const { parseFile } = require('./parser/file');
+
 const { term } = require('./terminal');
+
+let files = [];
+
+function getFilesRecursively(directory) {
+  fs.readdirSync(directory).forEach(file => {
+      const absolute = path.join(directory, file);
+      if (fs.statSync(absolute).isDirectory()) return getFilesRecursively(absolute);
+      else return files.push(absolute);
+  });
+  return files;
+}
 
 //#endregion import
 
@@ -84,6 +100,46 @@ if (commandArgs[0] === "init") {
     }
 
   }
+
+} else if (commandArgs[0] === "build") {
+
+  term.rtag().space().println("Check dependencies...".green);
+
+  term.println(term.tab("- skipped".yellow))
+
+  term.rtag().space().println("Construct files...".green);
+
+  let flgs = [];
+
+  getFilesRecursively("src/").forEach(v => {
+    if (v.endsWith(".flg")) 
+      flgs.push(v);
+  })
+
+  flgs = flgs.map(v=>v.replace("src\\", ""));
+
+  term.println(term.tab("Parsing..."));
+
+  let pc = [];
+
+  flgs.forEach(v=>{
+    if (v.includes("\\")) {
+      term.println(term.tab(term.tab("+ " + v.blue)))
+      pc.push({file: parseFile(fs.readFileSync("src\\"+v, "utf-8").replaceAll("\r", "")), path: v.split("\\").slice(0, -1).join(".")});
+    } else {
+      term.println(term.tab(term.tab("~ " + v.blue)))
+    }
+  });
+
+  term.println(term.tab("Checking..."));
+
+  const constructed = convert(pc);
+
+  typeCheck(constructed);
+
+
+
+  term.rtag().space().println("Build project...".green);
 
 } else if (helpFlag || commandArgs[0] === "help") {
   term.ln();
