@@ -3,7 +3,7 @@ const colors = require('colors');
 const term = {
 
     rtag: () => {
-      term.print("[ 🐲 Flowge ]".gray)
+      term.print("[ 🐲 ".gray + "Flowge".black + " ]".gray)
       return term;
     },
   
