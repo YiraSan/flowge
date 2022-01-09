@@ -2,13 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseFile = void 0;
 const sirop_1 = require("sirop");
-const global_1 = require("./global");
 const thread_1 = require("./object/thread");
 function parseFile(entry) {
     const parser = new sirop_1.Parser();
     let def = {
         usings: [],
-        imports: [],
         threads: {},
     };
     parser.onUncaught((token) => {
@@ -16,29 +14,26 @@ function parseFile(entry) {
     });
     // use
     parser.root({
-        "expression": "<use> <path:$string^semicolon>",
-        "validate": (matched) => {
-            const namespace = matched.path.slice(0, -1).map(v => v.content);
-            const typescriptIsDump = matched.path.slice(0, -1).map(v => v.content == null ? "{.}" : v.content);
-            if (global_1.ValidPath.test(namespace.join(""))) {
-                def.usings.push(typescriptIsDump.join(""));
-                return true;
+        expression: "<use> <path:$string^colon> <cl:$colon> <obj:$string|$curly_bracket> <;>",
+        validate: (matched) => {
+            const path = matched.path.filter(v => v.name !== "space").slice(0, -1);
+            const obj = matched.obj[0].content || matched.obj[0].wrapperContent;
+            if (obj == null)
+                return false;
+            // Namespace Check
+            for (let i = 0; i < path.length; i++) {
+                if (path[i].name !== "string" && path[i].name !== "dot")
+                    return false;
+            }
+            if (typeof obj === "string") {
+                def.usings.push({
+                    "path": path.map(v => v.content) + "",
+                    "used": obj === "*" ? "*" : [obj],
+                });
             }
             else {
-                console.log("Invalid Path:", namespace.join(""));
-                process.exit();
+                throw "Unimplemented function";
             }
-        }
-    });
-    // import
-    parser.root({
-        "expression": "<import> <pkg:$string> <;>",
-        "validate": (matched) => {
-            if (matched.pkg[0].content != null) {
-                def.imports.push(matched.pkg[0].content);
-            }
-            else
-                return false;
             return true;
         }
     });

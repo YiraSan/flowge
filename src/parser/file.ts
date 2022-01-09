@@ -3,8 +3,10 @@ import { ValidPath } from './global';
 import { parseThread, ThreadPrototype } from './object/thread';
 
 export interface FileDefinition {
-    usings: string[],
-    imports: string[],
+    usings: {
+        path: string,
+        used: "*" | string[],
+    }[],
     threads: {[key: string]: {
         proto: ThreadPrototype,
         flag: "public" | "private",
@@ -18,7 +20,6 @@ export function parseFile(entry: string): FileDefinition {
 
     let def: FileDefinition = {
         usings: [],
-        imports: [],
         threads: {},
     }
 
@@ -28,32 +29,38 @@ export function parseFile(entry: string): FileDefinition {
 
     // use
     parser.root({
-        "expression": "<use> <path:$string^semicolon>",
-        "validate": (matched) => {
-            
-            const namespace = matched.path.slice(0, -1).map(v=>v.content);
-            const typescriptIsDump = matched.path.slice(0, -1).map(v=>v.content==null?"{.}":v.content);
-    
-            if (ValidPath.test(namespace.join(""))) {
-                def.usings.push(typescriptIsDump.join(""));
-                return true;
-            } else {
-                console.log("Invalid Path:", namespace.join(""))
-                process.exit();
-            }
-            
-        }
-    })
 
-    // import
-    parser.root({
-        "expression": "<import> <pkg:$string> <;>",
-        "validate": (matched) => {
-            if (matched.pkg[0].content != null) {
-                def.imports.push(matched.pkg[0].content);
-            } else return false;
+        expression: "<use> <path:$string^colon> <cl:$colon> <obj:$string|$curly_bracket> <;>",
+
+        validate: (matched) => {
+
+            const path = matched.path.filter(v=>v.name!=="space").slice(0, -1);
+            const obj = matched.obj[0].content || matched.obj[0].wrapperContent;
+            if (obj==null) return false;
+
+            // Namespace Check
+            for (let i = 0; i < path.length; i++) {
+                if (path[i].name !== "string" && path[i].name !== "dot") return false;
+            }
+
+            if (typeof obj === "string") {
+
+                def.usings.push({
+                    "path": path.map(v=>v.content)+"",
+                    "used": obj === "*" ? "*" : [obj],
+                })
+
+            } else {
+
+                throw "Unimplemented function"
+
+            }
+
+
             return true;
+            
         }
+
     })
 
     // Thread
