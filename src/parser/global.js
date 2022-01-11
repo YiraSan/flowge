@@ -1,16 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseMethodArgs = exports.parseValue = exports.ValidPath = void 0;
+exports.parseMethodArgs = exports.ValidPath = void 0;
 exports.ValidPath = /^(?:[a-z]\d*(?:\.[a-z])?)+$/i;
-function parseValue(str) {
-    if (str === null)
-        return null;
-    if (str === "true")
-        return true;
-    if (str === "false")
-        return false;
-}
-exports.parseValue = parseValue;
 function parseMethodArgs(str) {
     if (str === "" || str === " ")
         return [];

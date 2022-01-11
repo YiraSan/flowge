@@ -1,14 +1,5 @@
 export const ValidPath = /^(?:[a-z]\d*(?:\.[a-z])?)+$/i;
 
-export function parseValue(str: string | null): any {
-    
-    if (str === null) return null;
-
-    if (str === "true") return true;
-    if (str === "false") return false;
- 
-}
-
 export interface Args {
     type: string,
     name: string,
