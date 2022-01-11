@@ -14,7 +14,7 @@ const char = {
     line: `│`,
 };
 
-function tree (_tree: Tree) {
+export function generateTrace (_tree: Tree) {
     let _trace = '';
     for (let i = 0; i < _tree.length; i++) {
         const nextString = ()=>{
@@ -41,20 +41,11 @@ function tree (_tree: Tree) {
             }
         } else {
             if (nextString()) {
-                _trace += tree(_tree[i]).split("\n").map((v,i)=> i===0 ? ` `+v : char.line+` `+v).join("\n");
+                _trace += generateTrace(_tree[i]).split("\n").map((v,i)=> i===0 ? ` `+v : char.line+` `+v).join("\n");
             } else {
-                _trace += tree(_tree[i]).split("\n").map(v=>char.space+v).join("\n");
+                _trace += generateTrace(_tree[i]).split("\n").map(v=>char.space+v).join("\n");
             }
         }
     }
-    return _trace;
-}
-
-export function generateTrace (trace: BigTree) {
-    let _trace = '';
-    // message
-    _trace += trace.main;
-    // tree
-    _trace += tree(trace.tree);
     return _trace;
 }
