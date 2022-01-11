@@ -25,7 +25,7 @@ function getFilesRecursively(directory) {
 
 //#region init
 
-const version = `${require('../package.json').buildname.toUpperCase().yellow} ${require('../package.json').version}`;
+const version = `${require('../project/config.json').build.name.toUpperCase().yellow} ${require('../project/config.json').build.tag}`;
 
 //#endregion init
 
@@ -152,7 +152,7 @@ if (commandArgs[0] === "init") {
   term.println("Version: " + version)
   term.ln();
 } else if (versionFlag) {
-  term.print(version);
+  term.println(version);
 } else if (commandArgs[0] == null) {
   term.println(`Is missing a command, no ? Check \`${"flg".yellow} help\``);
 } else term.println(`Unknown Command. Check \`${"flg".yellow} help\``);
