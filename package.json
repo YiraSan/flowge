@@ -5,7 +5,6 @@
   "name": "flowge",
   "description": "Flowge is the official language of Rantemma",
   "version": "0.0.1",
-  "buildname": "snowball",
   "main": "src/module.js",
   "repository": {
     "type": "git",
