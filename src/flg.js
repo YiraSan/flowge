@@ -5,8 +5,6 @@
 const fs = require('fs');
 const path = require('path');
 
-const { toStable } = require('./constructor/check');
-const { convert } = require('./converter');
 const { parseFile } = require('./parser/file');
 
 const { term } = require('./terminal');
@@ -144,7 +142,7 @@ if (commandArgs[0] === "init") {
 
     term.println(term.tab("Checking..."));
 
-    const constructed = toStable(convert(pc));
+    //const constructed = toStable(convert(pc));
 
     term.rtag().space().println("Build project...".green);
     
