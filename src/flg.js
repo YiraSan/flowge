@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
+
 const { typeCheck } = require('./constructor/check');
 const { convert } = require('./converter');
 const { parseFile } = require('./parser/file');
@@ -88,7 +89,7 @@ if (commandArgs[0] === "init") {
 
       // root file
 
-      fs.writeFileSync("LICENSE", fs.readFileSync(__dirname + "\\..\\LICENSE", "utf-8"), "utf-8");
+      fs.writeFileSync("LICENSE", fs.readFileSync(__dirname + "/../LICENSE", "utf-8"), "utf-8");
       fs.writeFileSync("README.md", '# A Flowge Project\n\n> Oh wow what awesome stuff here!', 'utf-8');
 
       console.log("Project successfully initialized")
@@ -116,7 +117,7 @@ if (commandArgs[0] === "init") {
       flgs.push(v);
   })
 
-  flgs = flgs.map(v=>v.replace("src\\", ""));
+  flgs = flgs.map(v=>v.replace("src/", ""));
 
   term.println(term.tab("Parsing..."));
 
@@ -125,7 +126,7 @@ if (commandArgs[0] === "init") {
   flgs.forEach(v=>{
     if (v.includes("\\")) {
       term.println(term.tab(term.tab("+ " + v.blue)))
-      pc.push({file: parseFile(fs.readFileSync("src\\"+v, "utf-8").replaceAll("\r", "")), path: v.split("\\").slice(0, -1).join(".")});
+      pc.push({file: parseFile(fs.readFileSync("src/"+v, "utf-8").replaceAll("\r", "")), path: v.split("\\").slice(0, -1).join(".")});
     } else {
       term.println(term.tab(term.tab("~ " + v.blue)))
     }
@@ -136,8 +137,6 @@ if (commandArgs[0] === "init") {
   const constructed = convert(pc);
 
   typeCheck(constructed);
-
-
 
   term.rtag().space().println("Build project...".green);
 
