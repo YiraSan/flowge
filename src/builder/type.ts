@@ -5,7 +5,7 @@ export interface TypeMsg {
     level: "error" | "warn",
 }
 
-export function typeCheck (context: RPAContext): TypeMsg[] {
+export function typeCheck(context: RPAContext): TypeMsg[] {
 
     let error: TypeMsg[] = [];
 

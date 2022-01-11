@@ -6,9 +6,7 @@ export function madeRpa(files: {
     package: string,
     def: FileDefinition,
 }[]): RPAContext {
-
     const context = new RPAContext();
-
     for (let i = 0; i < files.length; i++) {
         const PACKAGE = files[i].package;
         // THREADS
@@ -34,7 +32,5 @@ export function madeRpa(files: {
         // INTERFACE
         // STRUCTURE
     }
-
     return context;
-
 }
