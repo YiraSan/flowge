@@ -1,7 +1,7 @@
 export interface Field {
     flag: "public" | "private",
     type: string,
-    value: any,
+    value: string,
 }
 
 export interface Method {
