@@ -132,9 +132,11 @@ if (commandArgs[0] === "init") {
     let pc = [];
 
     flgs.forEach(v=>{
-      if (v.includes("\\")||v.includes("/")) {
+      // windows compatibility
+      v = v.replaceAll("\\", "/");
+      if (v.includes("/")) {
         term.println(term.tab(term.tab("+ " + v.blue)))
-        pc.push({file: parseFile(fs.readFileSync("src/"+v, "utf-8").replaceAll("\r", "")), path: v.split("\\").slice(0, -1).join(".")});
+        pc.push({file: parseFile(fs.readFileSync("src/"+v, "utf-8").replaceAll("\r", "")+ "\n"), path: v.split("/").slice(0, -1).join(".")});
       } else {
         term.println(term.tab(term.tab("~ " + v.blue)))
       }
