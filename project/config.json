@@ -1,0 +1,7 @@
+{
+    "name": "flowge",
+    "build": {
+        "tag": "0.0.1",
+        "name": "snowball"
+    }
+}
