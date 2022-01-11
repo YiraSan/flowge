@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { madeRpa } = require('./builder/rpa');
 
 const { parseFile } = require('./parser/file');
 
@@ -132,19 +133,32 @@ if (commandArgs[0] === "init") {
     flgs.forEach(v=>{
       // windows compatibility
       v = v.replaceAll("\\", "/");
+      const diplay = v.split("/").slice(0, -1).join(".")+"/"+v.split("/")[v.split("/").length-1];
       if (v.includes("/")) {
-        term.println(term.tab(term.tab("+ " + v.blue)))
-        pc.push({file: parseFile(fs.readFileSync("src/"+v, "utf-8").replaceAll("\r", "")+ "\n"), path: v.split("/").slice(0, -1).join(".")});
+        term.println(term.tab(term.tab("+ " + diplay.blue)))
+        pc.push({def: parseFile(fs.readFileSync("src/"+v, "utf-8").replaceAll("\r", "")+ "\n"), package: v.split("/").slice(0, -1).join(".")});
       } else {
-        term.println(term.tab(term.tab("~ " + v.blue)))
+        term.println(term.tab(term.tab("~ " + diplay.blue)))
       }
     });
 
+    
+
+    const clearLastLine = () => {
+      process.stdout.moveCursor(0, -1); 
+      process.stdout.clearLine(1); 
+    }
+    flgs.forEach(v=>clearLastLine());
+    process.stdout.moveCursor(0, -1);
+    term.println("    Parsing..." + " OK".green);
+
     term.println(term.tab("Checking..."));
 
-    //const constructed = toStable(convert(pc));
+    const maded = madeRpa(pc);
 
-    term.rtag().space().println("Build project...".green);
+    //console.log(maded)
+
+    //term.rtag().space().println("Build project...".green);
     
   }
 
