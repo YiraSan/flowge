@@ -55,7 +55,7 @@ if (commandArgs[0] === "init") {
 
   if (helpFlag) {
 
-    term.print(`Usage: ${"init".yellow} [--force]`);
+    term.println(`Usage: ${"init".yellow} [--force]`);
 
   } else {
 
@@ -154,7 +154,7 @@ if (commandArgs[0] === "init") {
 } else if (versionFlag) {
   term.print(version);
 } else if (commandArgs[0] == null) {
-  term.print(`Is missing a command, no ? Check \`${"flg".yellow} help\``);
-} else term.print(`Unknown Command. Check \`${"flg".yellow} help\``);
+  term.println(`Is missing a command, no ? Check \`${"flg".yellow} help\``);
+} else term.println(`Unknown Command. Check \`${"flg".yellow} help\``);
 
 //#endregion command
