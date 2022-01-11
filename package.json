@@ -18,11 +18,11 @@
   },
   "homepage": "https://github.com/rantemma/flowge#readme",
   "devDependencies": {
-    "@types/colors": "^1.2.1",
     "@types/node": "^17.0.6"
   },
   "dependencies": {
     "colors": "^1.4.0",
+    "llvm-bindings": "^0.3.3",
     "sirop": "^0.0.8"
   }
 }
