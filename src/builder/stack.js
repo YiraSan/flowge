@@ -59,26 +59,3 @@ function generateTrace(trace) {
     return _trace;
 }
 exports.generateTrace = generateTrace;
-console.log(generateTrace({
-    "main": "Radi3nt... Une erreur en elle même.",
-    "tree": [
-        "Je m'amuse oui...",
-        [
-            "Ca te pose un problème hein ?",
-            "HEIN ?",
-            "Je m'amuse oui...",
-            [
-                "Ca te pose un problème hein ?",
-                "HEIN ?",
-                "Je m'amuse oui...",
-                [
-                    "Ca te pose un problème hein ?",
-                    "HEIN ?"
-                ],
-                "OEOEOEOE)"
-            ],
-            "OEOEOEOE)"
-        ],
-        "OEOEOEOE)"
-    ]
-}));

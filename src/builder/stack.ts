@@ -58,27 +58,3 @@ export function generateTrace (trace: BigTree) {
     _trace += tree(trace.tree);
     return _trace;
 }
-
-console.log(generateTrace({
-    "main": "Radi3nt... Une erreur en elle même.",
-    "tree": [
-        "Je m'amuse oui...",
-        [
-            "Ca te pose un problème hein ?",
-            "HEIN ?",
-            "Je m'amuse oui...",
-            [
-                "Ca te pose un problème hein ?",
-                "HEIN ?",
-                "Je m'amuse oui...",
-                [
-                    "Ca te pose un problème hein ?",
-                    "HEIN ?"
-                ],
-                "OEOEOEOE)"
-            ],
-            "OEOEOEOE)"
-        ],
-        "OEOEOEOE)"
-    ]
-}))
