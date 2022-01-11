@@ -1,1 +1,1 @@
-npm uninstall -g flowge && npm install -g . && clear
+sudo npm uninstall -g flowge && sudo npm install -g . && clear
