@@ -57,6 +57,7 @@ if (commandArgs[0] === "init") {
   if (helpFlag) {
 
     term.println(`Usage: ${"init".yellow} [--force]`);
+    term.println(`Description: Create a new project in the current dir`)
 
   } else {
 
@@ -92,11 +93,11 @@ if (commandArgs[0] === "init") {
       fs.writeFileSync("LICENSE", fs.readFileSync(__dirname + "/../LICENSE", "utf-8"), "utf-8");
       fs.writeFileSync("README.md", '# A Flowge Project\n\n> Oh wow what awesome stuff here!', 'utf-8');
 
-      console.log("Project successfully initialized")
+      term.rtag().space().println("Success!");
 
     } else {
 
-      console.log("`--force`".gray, "flag is needed to override this dir.")
+      term.rtag().space().println("`--force`".gray + " flag is needed to override this dir.");
 
     }
 
@@ -104,56 +105,64 @@ if (commandArgs[0] === "init") {
 
 } else if (commandArgs[0] === "build") {
 
-  term.rtag().space().println("Check dependencies...".green);
+  if (helpFlag) {
 
-  term.println(term.tab("- skipped".yellow))
+    term.println(`Usage: ${"build".yellow}`);
+    term.println(`Description: Build the current project, with optimisation`)
 
-  term.rtag().space().println("Construct files...".green);
+  } else {
 
-  let flgs = [];
+    term.rtag().space().println("Check dependencies...".green);
 
-  getFilesRecursively("src/").forEach(v => {
-    if (v.endsWith(".flg")) 
-      flgs.push(v);
-  })
+    term.println(term.tab("- skipped".yellow))
 
-  flgs = flgs.map(v=>v.replace("src/", ""));
+    term.rtag().space().println("Construct files...".green);
 
-  term.println(term.tab("Parsing..."));
+    let flgs = [];
 
-  let pc = [];
+    getFilesRecursively("src/").forEach(v => {
+      if (v.endsWith(".flg")) 
+        flgs.push(v);
+    })
 
-  flgs.forEach(v=>{
-    if (v.includes("\\")) {
-      term.println(term.tab(term.tab("+ " + v.blue)))
-      pc.push({file: parseFile(fs.readFileSync("src/"+v, "utf-8").replaceAll("\r", "")), path: v.split("\\").slice(0, -1).join(".")});
-    } else {
-      term.println(term.tab(term.tab("~ " + v.blue)))
-    }
-  });
+    flgs = flgs.map(v=>v.replace("src/", ""));
 
-  term.println(term.tab("Checking..."));
+    term.println(term.tab("Parsing..."));
 
-  const constructed = convert(pc);
+    let pc = [];
 
-  typeCheck(constructed);
+    flgs.forEach(v=>{
+      if (v.includes("\\")||v.includes("/")) {
+        term.println(term.tab(term.tab("+ " + v.blue)))
+        pc.push({file: parseFile(fs.readFileSync("src/"+v, "utf-8").replaceAll("\r", "")), path: v.split("\\").slice(0, -1).join(".")});
+      } else {
+        term.println(term.tab(term.tab("~ " + v.blue)))
+      }
+    });
 
-  term.rtag().space().println("Build project...".green);
+    term.println(term.tab("Checking..."));
+
+    const constructed = convert(pc);
+
+    typeCheck(constructed);
+
+    term.rtag().space().println("Build project...".green);
+    
+  }
 
 } else if (helpFlag || commandArgs[0] === "help") {
   term.ln();
-  const command = [
-    `help ${"Display this".gray}`,
-    `init ${"Initialize a new project".gray}`
-  ];
-  term.println("Command:\n"+term.tab(command.join("\n")))
+  term.rtag().space().println("Need help ? You're on the right place :)").ln();
+  const command = ["help", "init", "build"];
+  term.println("Command:\n"+term.tab(command.join(", "))).ln();
+  term.println("Check command details with: `flg <command> --help`");
   term.ln();
   term.println("Version: " + version)
   term.ln();
 } else if (versionFlag) {
-  term.println(version);
+  term.rtag().space().println("Currently running on: " + version);
 } else if (commandArgs[0] == null) {
-  term.println(`Is missing a command, no ? Check \`${"flg".yellow} help\``);
-} else term.println(`Unknown Command. Check \`${"flg".yellow} help\``);
+  term.rtag().space().println(`Is missing a command, no ? Check \`${"flg".yellow} help\``);
+} else term.rtag().space().println(`Unknown Command. Check \`${"flg".yellow} help\``);
 
 //#endregion command
