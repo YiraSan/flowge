@@ -1,4 +1,4 @@
-Flowge is the official language of Prune (Rantemma Kernel)
+Flowge is the official language of Rantemma
 
 See all about it in the [wiki](https://flowgedocs.github.io/)
 

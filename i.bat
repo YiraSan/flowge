@@ -1,1 +1,0 @@
-npm uninstall -g flowge && npm install -g . && cls

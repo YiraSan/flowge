@@ -1,9 +1,0 @@
-{
-    "name": "flowge",
-    "build": {
-        "tag": "0.0.1",
-        "name": "snowball"
-    },
-    "license": "GPL-3.0",
-    "repo": "https://github.com/rantemma/flowge"
-}
