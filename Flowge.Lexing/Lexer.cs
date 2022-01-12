@@ -52,7 +52,7 @@ namespace Flowge.Lexing {
                 foreach (var item in this.roots) 
                 {
 
-                    bool caught;
+                    bool caught = false;
 
                     foreach (var word in item.expression.Words)
                     {
