@@ -41,20 +41,55 @@ namespace Flowge.Lexer {
 
             for (uint i = 0; i < this.entries.Length; i++)
             {
+
                 if (typeof(CharEntry).IsInstanceOfType(this.entries[i]))
                 {
-                    if (this.CurrentValue[this.Index].Equals(((CharEntry) this.entries[i]).KeyChar)){
+                    if (this.CurrentValue[this.Index].Equals(((CharEntry) this.entries[i]).Char)){
                         this.Index++;
                         this.Column++;
-                        return new CharToken(Begin, new TextPosition(this.Column, this.Line), this.CurrentValue[this.Index-1]);
+                        return new CharToken(this.entries[i].Id, Begin, new TextPosition(this.Column, this.Line), this.CurrentValue[this.Index-1]);
                     }
                 }
-                else if (typeof(CharEntry).IsInstanceOfType(this.entries[i]))
+                else if (typeof(UntilEntry).IsInstanceOfType(this.entries[i]))
                 {
 
+                    UntilEntry entry = (UntilEntry) this.entries[i];
+
+                    if (this.CurrentValue[this.Index].Equals(entry.BeginEnd))
+                    {
+
+                        int temp = this.Index+1;
+                        bool valid = false;
+                        string segment = "";
+
+                        while (true)
+                        {
+                            segment += this.CurrentValue[temp];
+                            temp++;
+                            if (temp >= this.CurrentValue.Length)
+                            {
+                                break;
+                            }
+                            else if (this.CurrentValue[temp].Equals(entry.BeginEnd))
+                            {
+                                valid = true;
+                            }
+                        }
+
+                        if (valid)
+                        {
+
+
+
+                        }
+
+                    }
+
                 }
+
             }
 
+            // When unexpected
             return null;
 
         }
