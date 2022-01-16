@@ -1,60 +1,82 @@
 namespace Flowge.Lexer 
 {
 
-    public interface Entry 
+    public static class LinkIds
     {
-        bool SupportBreakLines { get; }
-    }
-
-    public struct ChunkEntry : Entry
-    {
-        public bool SupportBreakLines { get; set; }
-        public char Begin { get; set; }
-        public char End { get; set; }
-    }
-
-    public struct UntilEntry : Entry
-    {
-        public bool SupportBreakLines { get; set; }
-        public char BeginEnd { get; set; }
-    }
-
-    public struct RegularEntry : Entry
-    {
-        public bool SupportBreakLines { get; set; }
-        public char[] Chars { get; set; }
-        public static RegularEntry New(char[] Chars, bool SBL)
+        private static uint Id = 0;
+        public static uint NewId()
         {
-            RegularEntry entry = new RegularEntry();
-            entry.SupportBreakLines = SBL;
-            entry.Chars = Chars;
-            return entry;
+            Id++;
+            return Id-1;
         }
-        public static RegularEntry New(string chrs, bool SBL)
+    }
+
+    public abstract class Entry 
+    {
+        public bool SupportBreakLines { get; }
+        public uint Id { get; }
+        public Entry(bool SupportBreakLines)
         {
-            char[] chars = new char[]{};
+            this.SupportBreakLines = SupportBreakLines;
+            this.Id = LinkIds.NewId();
+        }
+    }
+
+    public class ChunkEntry : Entry
+    {
+        public char Begin { get; }
+        public char End { get; }
+        public ChunkEntry(char Begin, char End, bool SupportBreakLines)
+        : base(SupportBreakLines)
+        {
+            this.Begin = Begin;
+            this.End = End;
+        }
+    }
+
+    public class UntilEntry : Entry
+    {
+        public char BeginEnd { get; }
+        public UntilEntry(char BeginEnd, bool SupportBreakLines)
+        : base(SupportBreakLines)
+        {
+            this.BeginEnd = BeginEnd;
+        }
+    }
+
+    public class RegularEntry : Entry
+    {
+        public char[] Chars { get; }
+
+        public RegularEntry(char[] Chars, bool SupportBreakLines)
+        : base(SupportBreakLines)
+        {
+            this.Chars = Chars;
+        }
+
+        public RegularEntry(string chrs, bool SupportBreakLines)
+        : base(SupportBreakLines)
+        {
+            this.Chars = new char[]{};
             foreach (var chr in chrs)
             {
-                chars.Append(chr);
+                this.Chars.Append(chr);
             }
-            return New(chars, SBL);
         }
-        public static implicit operator RegularEntry(string str) => New(str, false);
-        public static implicit operator RegularEntry(char[] chrs) => New(chrs, false);
+
+        public static implicit operator RegularEntry(string str) => new(str, false);
+        public static implicit operator RegularEntry(char[] chrs) => new(chrs, false);
     }
 
-    public struct CharEntry : Entry
+    public class CharEntry : Entry
     {
-        public bool SupportBreakLines { get; set; }
-        public char KeyChar { get; set; }
-        public static CharEntry New(char KeyChar)
+        public char Char { get; set; }
+        public CharEntry(char Char, bool SupportBreakLines)
+        : base(SupportBreakLines)
         {
-            CharEntry entry = new CharEntry();
-            entry.SupportBreakLines = false;
-            entry.KeyChar = KeyChar;
-            return entry;
+            this.Char = Char;
         }
-        public static implicit operator CharEntry(char Char) => New(Char);
+        public static implicit operator CharEntry(char Char) => new(Char, false);
     }
 
 }
