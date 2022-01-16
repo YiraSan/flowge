@@ -14,7 +14,7 @@ namespace Flowge.Lexer {
 
         public Lexer()
         {
-            
+
         }
 
         public Lexer(Entry[] Entries)
@@ -32,6 +32,12 @@ namespace Flowge.Lexer {
 
         public Token Next()
         {
+
+            if (this.Index >= this.CurrentValue.Length-1)
+            {
+                TextPosition end = new TextPosition(this.Column, this.Line);
+                return new EndSequenceToken(-2, end, end);
+            }
 
             if (this.CurrentValue[this.Index].Equals('\n'))
             {
@@ -67,31 +73,66 @@ namespace Flowge.Lexer {
                     if (this.CurrentValue[this.Index].Equals(entry.BeginEnd))
                     {
 
-                        int temp = this.Index+1;
-                        bool valid = false;
-                        string segment = "";
+                        int Temp = this.Index+1;
+                        string Segment = "";
+
+                        uint NL = this.Line;
+                        uint NC = this.Column;
 
                         while (true)
                         {
-                            segment += this.CurrentValue[temp];
-                            temp++;
-                            if (temp >= this.CurrentValue.Length)
+                            if (Temp >= this.CurrentValue.Length)
                             {
                                 break;
-                            }
-                            else if (this.CurrentValue[temp].Equals(entry.BeginEnd))
+                            } 
+                            else  if (this.CurrentValue[Temp].Equals(entry.BeginEnd))
                             {
-                                valid = true;
+                                this.Column = NC;
+                                this.Line = NL;
+                                this.Index = Temp+1;
+                                return new UntilToken((int) entry.Id, Begin, new TextPosition(this.Column, this.Line), Segment);
+                            } 
+                            else if (this.CurrentValue[Temp].Equals('\n'))
+                            {
+                                if (entry.SupportBreakLines==false)
+                                {
+                                    break;
+                                } else {
+                                    Segment += '\n';
+                                    NL++;
+                                    NC=1;
+                                    Temp++;
+                                    continue;
+                                }
                             }
-                        }
 
-                        if (valid)
-                        {
-                            return new UntilToken((int) entry.Id, Begin, new TextPosition(this.Column, this.Line), entry.BeginEnd+segment);
+                            Segment += this.CurrentValue[Temp];
+                            NC++;
+                            Temp++;
+            
                         }
 
                     }
 
+                }
+                else if (typeof(RegularEntry).IsInstanceOfType(this.Entries[i]))
+                {
+                    RegularEntry entry = (RegularEntry) this.Entries[i];
+                    int Temp = this.Index;
+                    string segment = "";
+                    while (entry.Chars.Contains(this.CurrentValue[Temp]))
+                    {
+                        segment += this.CurrentValue[Temp];
+                        Temp++;
+                        if (Temp >= this.CurrentValue.Length-1)
+                        {
+                            
+                        } 
+                        else if (entry.Chars.Contains(this.CurrentValue[Temp]))
+                        {
+
+                        }
+                    }
                 }
 
             }
@@ -100,6 +141,8 @@ namespace Flowge.Lexer {
             return new UnexpectedToken(-1, Begin, new TextPosition(this.Column+1, this.Line));
 
         }
+
+
 
     }
 
