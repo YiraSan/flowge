@@ -17,7 +17,6 @@ namespace Flowge.Lexer
     {
         public bool SupportBreakLines { get; set; }
         public char BeginEnd { get; set; }
-        public bool ReturnAsString { get; set; }
     }
 
     public struct RegularEntry : Entry
