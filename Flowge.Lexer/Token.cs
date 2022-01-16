@@ -11,12 +11,14 @@ namespace Flowge.Lexer {
         public uint Line { get; }
     }    
 
-    public class Token 
+    public abstract class Token 
     {
+        public uint Id;
         public TextPosition Begin;
         public TextPosition End;
-        public Token(TextPosition Begin, TextPosition End)
+        public Token(uint Id, TextPosition Begin, TextPosition End)
         {
+            this.Id = Id;
             this.Begin = Begin;
             this.End = End;
         }
@@ -25,7 +27,8 @@ namespace Flowge.Lexer {
     public class ChunkToken : Token
     {
         public Token[] Tokens;
-        public ChunkToken(TextPosition Begin, TextPosition End, Token[] Tokens) : base(Begin, End)
+        public ChunkToken(uint Id, TextPosition Begin, TextPosition End, Token[] Tokens) 
+        : base(Id, Begin, End)
         {
             this.Tokens = Tokens;
         }
@@ -34,7 +37,8 @@ namespace Flowge.Lexer {
     public class UntilToken : Token
     {
         public Token[] Tokens;
-        public UntilToken(TextPosition Begin, TextPosition End, Token[] Tokens) : base(Begin, End)
+        public UntilToken(uint Id, TextPosition Begin, TextPosition End, Token[] Tokens) 
+        : base(Id, Begin, End)
         {
             this.Tokens = Tokens;
         }
@@ -43,7 +47,8 @@ namespace Flowge.Lexer {
     public class CharToken : Token
     {
         public char Char;
-        public CharToken(TextPosition Begin, TextPosition End, char Char) : base(Begin, End)
+        public CharToken(uint Id, TextPosition Begin, TextPosition End, char Char) 
+        : base(Id, Begin, End)
         {
             this.Char = Char;
         }
