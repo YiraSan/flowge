@@ -1,6 +1,6 @@
 namespace Flowge.Lexer {
 
-    public sealed class Lexer {
+    public class Lexer {
 
         private string CurrentValue = ".hello world!";
 
@@ -118,21 +118,37 @@ namespace Flowge.Lexer {
                 else if (typeof(RegularEntry).IsInstanceOfType(this.Entries[i]))
                 {
                     RegularEntry entry = (RegularEntry) this.Entries[i];
-                    int Temp = this.Index;
-                    string segment = "";
-                    while (entry.Chars.Contains(this.CurrentValue[Temp]))
+                    if (entry.Chars.Contains(this.CurrentValue[this.Index]))
                     {
-                        segment += this.CurrentValue[Temp];
-                        Temp++;
-                        if (Temp >= this.CurrentValue.Length-1)
+                        int Temp = this.Index+1;
+                        uint NL = this.Line;
+                        uint NC = this.Column;
+                        string segment = ""+this.CurrentValue[this.Index];
+                        while(true)
                         {
-                            
-                        } 
-                        else if (entry.Chars.Contains(this.CurrentValue[Temp]))
-                        {
-
+                            if (Temp >= this.CurrentValue.Length||!entry.Chars.Contains(this.CurrentValue[Temp]))
+                            {
+                                this.Line = NL;
+                                this.Column = NC;
+                                this.Index = Temp;
+                                return new RegularToken((int) entry.Id, Begin, new TextPosition(this.Column, this.Line), segment);
+                            } 
+                            else if (this.CurrentValue[Temp].Equals('\n'))
+                            {
+                                segment += "\n";
+                                NL++;
+                                Temp++;
+                                NC=1;
+                            }
+                            else if (entry.Chars.Contains(this.CurrentValue[Temp]))
+                            {
+                                segment += this.CurrentValue[Temp];
+                                Temp++;
+                                NC++;
+                            }
                         }
                     }
+                    
                 }
 
             }
