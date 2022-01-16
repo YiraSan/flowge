@@ -1,6 +1,6 @@
 namespace Flowge.Lexer {
 
-    public class Lexer {
+    public sealed class Lexer {
 
         private string CurrentValue = ".hello world!";
 
