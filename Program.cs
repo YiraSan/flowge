@@ -1,5 +1,1 @@
-﻿using Flowge.Parsers;
-
-TestParser parser = new TestParser();
-
-parser.Run("test!");
+﻿Console.WriteLine("uwu");
