@@ -12,7 +12,12 @@ namespace Flowge.Lexer {
             new UntilEntry('\'', true),
         };
 
-        public void Set(Entry[] Entries)
+        public Lexer()
+        {
+            
+        }
+
+        public Lexer(Entry[] Entries)
         {
             this.Entries = Entries;
         }
