@@ -11,6 +11,16 @@ namespace Flowge.Lexer {
         public uint Line { get; }
     }    
 
+    public enum TokenType
+    {
+        CHUNK,
+        UNTIL,
+        CHAR,
+        END_SEQUENCE,
+        UNEXPECTED,
+        DEFAULT,
+    }
+
     public abstract class Token 
     {
         public uint Id;
@@ -22,6 +32,10 @@ namespace Flowge.Lexer {
             this.Begin = Begin;
             this.End = End;
         }
+        public virtual TokenType getType()
+        {
+            return TokenType.DEFAULT;
+        }
     }
 
     public class ChunkToken : Token
@@ -32,6 +46,7 @@ namespace Flowge.Lexer {
         {
             this.Tokens = Tokens;
         }
+        public override TokenType getType() => TokenType.CHUNK;
     }
 
     public class UntilToken : Token
@@ -42,6 +57,7 @@ namespace Flowge.Lexer {
         {
             this.Tokens = Tokens;
         }
+        public override TokenType getType() => TokenType.UNTIL;
     }
 
     public class CharToken : Token
@@ -52,6 +68,23 @@ namespace Flowge.Lexer {
         {
             this.Char = Char;
         }
+        public override TokenType getType() => TokenType.CHAR;
+    }
+
+    public class UnexpectedToken : Token
+    {
+        public UnexpectedToken(uint Id, TextPosition Begin, TextPosition End, char Char) 
+        : base(Id, Begin, End)
+        {}
+        public override TokenType getType() => TokenType.UNEXPECTED;
+    }
+
+    public class EndSequenceToken : Token
+    {
+        public EndSequenceToken(uint Id, TextPosition Begin, TextPosition End, char Char) 
+        : base(Id, Begin, End)
+        {}
+        public override TokenType getType() => TokenType.END_SEQUENCE;
     }
 
 }
