@@ -16,6 +16,7 @@ namespace Flowge.Lexer {
         CHUNK,
         UNTIL,
         CHAR,
+        REGULAR,
         END_SEQUENCE,
         UNEXPECTED,
         DEFAULT,
@@ -58,6 +59,17 @@ namespace Flowge.Lexer {
             this.Content = Content;
         }
         public override TokenType getType() => TokenType.UNTIL;
+    }
+
+    public class RegularToken : Token
+    {
+        public string Content;
+        public RegularToken(int Id, TextPosition Begin, TextPosition End, string Content) 
+        : base(Id, Begin, End)
+        {
+            this.Content = Content;
+        }
+        public override TokenType getType() => TokenType.REGULAR;
     }
 
     public class CharToken : Token
