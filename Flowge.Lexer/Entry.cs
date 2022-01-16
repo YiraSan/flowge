@@ -46,26 +46,26 @@ namespace Flowge.Lexer
 
     public class RegularEntry : Entry
     {
-        public char[] Chars { get; }
+        public List<char> Chars { get; }
 
-        public RegularEntry(char[] Chars, bool SupportBreakLines)
+        public RegularEntry(List<char> chars, bool SupportBreakLines)
         : base(SupportBreakLines)
         {
-            this.Chars = Chars;
+            this.Chars = chars;
         }
 
         public RegularEntry(string chrs, bool SupportBreakLines)
         : base(SupportBreakLines)
         {
-            this.Chars = new char[]{};
-            foreach (var chr in chrs)
+            this.Chars = new List<char>();
+            for (int i = 0; i < chrs.Length; i++)
             {
-                this.Chars.Append(chr);
+                this.Chars.Add(chrs[i]);
             }
         }
 
         public static implicit operator RegularEntry(string str) => new(str, false);
-        public static implicit operator RegularEntry(char[] chrs) => new(chrs, false);
+        public static implicit operator RegularEntry(List<char> chrs) => new(chrs, false);
     }
 
     public class CharEntry : Entry
