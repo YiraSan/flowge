@@ -16,7 +16,7 @@ namespace Flowge.Lexer
     public struct UntilEntry : Entry
     {
         public bool SupportBreakLines { get; set; }
-        public string BeginEnd { get; set; }
+        public char BeginEnd { get; set; }
         public bool ReturnAsString { get; set; }
     }
 
