@@ -1,6 +1,6 @@
 namespace Flowge.Lexer {
 
-    public class Lexer {
+    public sealed class Lexer {
 
         private string CurrentValue = ".hello world!";
 
@@ -8,10 +8,14 @@ namespace Flowge.Lexer {
         private uint Line = 1;
         private int Index = 0;
 
-        private Entry[] entries = new Entry[] {
-            (CharEntry) ' ',
-            (CharEntry) '.',
+        private Entry[] Entries = new Entry[] {
+            new UntilEntry('\'', true),
         };
+
+        public void Set(Entry[] Entries)
+        {
+            this.Entries = Entries;
+        }
 
         public void Set(string NewValue)
         {
@@ -21,7 +25,7 @@ namespace Flowge.Lexer {
             this.Index = 0;
         }
 
-        public Token? Next()
+        public Token Next()
         {
 
             if (this.CurrentValue[this.Index].Equals('\n'))
@@ -39,21 +43,21 @@ namespace Flowge.Lexer {
 
             TextPosition Begin = new TextPosition(this.Column, this.Line);
 
-            for (uint i = 0; i < this.entries.Length; i++)
+            for (uint i = 0; i < this.Entries.Length; i++)
             {
 
-                if (typeof(CharEntry).IsInstanceOfType(this.entries[i]))
+                if (typeof(CharEntry).IsInstanceOfType(this.Entries[i]))
                 {
-                    if (this.CurrentValue[this.Index].Equals(((CharEntry) this.entries[i]).Char)){
+                    if (this.CurrentValue[this.Index].Equals(((CharEntry) this.Entries[i]).Char)){
                         this.Index++;
                         this.Column++;
-                        return new CharToken(this.entries[i].Id, Begin, new TextPosition(this.Column, this.Line), this.CurrentValue[this.Index-1]);
+                        return new CharToken((int) this.Entries[i].Id, Begin, new TextPosition(this.Column, this.Line), this.CurrentValue[this.Index-1]);
                     }
                 }
-                else if (typeof(UntilEntry).IsInstanceOfType(this.entries[i]))
+                else if (typeof(UntilEntry).IsInstanceOfType(this.Entries[i]))
                 {
 
-                    UntilEntry entry = (UntilEntry) this.entries[i];
+                    UntilEntry entry = (UntilEntry) this.Entries[i];
 
                     if (this.CurrentValue[this.Index].Equals(entry.BeginEnd))
                     {
@@ -78,9 +82,7 @@ namespace Flowge.Lexer {
 
                         if (valid)
                         {
-
-
-
+                            return new UntilToken((int) entry.Id, Begin, new TextPosition(this.Column, this.Line), entry.BeginEnd+segment);
                         }
 
                     }
@@ -90,7 +92,7 @@ namespace Flowge.Lexer {
             }
 
             // When unexpected
-            return null;
+            return new UnexpectedToken(-1, Begin, new TextPosition(this.Column+1, this.Line));
 
         }
 
