@@ -71,12 +71,12 @@ namespace Flowge.Lexer
     public class CharEntry : Entry
     {
         public char Char { get; set; }
-        public CharEntry(char Char, bool SupportBreakLines)
-        : base(SupportBreakLines)
+        public CharEntry(char Char)
+        : base(false)
         {
             this.Char = Char;
         }
-        public static implicit operator CharEntry(char Char) => new(Char, false);
+        public static implicit operator CharEntry(char Char) => new(Char);
     }
 
 }
