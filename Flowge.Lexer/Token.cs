@@ -23,10 +23,10 @@ namespace Flowge.Lexer {
 
     public abstract class Token 
     {
-        public uint Id;
+        public int Id;
         public TextPosition Begin;
         public TextPosition End;
-        public Token(uint Id, TextPosition Begin, TextPosition End)
+        public Token(int Id, TextPosition Begin, TextPosition End)
         {
             this.Id = Id;
             this.Begin = Begin;
@@ -41,7 +41,7 @@ namespace Flowge.Lexer {
     public class ChunkToken : Token
     {
         public Token[] Tokens;
-        public ChunkToken(uint Id, TextPosition Begin, TextPosition End, Token[] Tokens) 
+        public ChunkToken(int Id, TextPosition Begin, TextPosition End, Token[] Tokens) 
         : base(Id, Begin, End)
         {
             this.Tokens = Tokens;
@@ -51,11 +51,11 @@ namespace Flowge.Lexer {
 
     public class UntilToken : Token
     {
-        public Token[] Tokens;
-        public UntilToken(uint Id, TextPosition Begin, TextPosition End, Token[] Tokens) 
+        public string Content;
+        public UntilToken(int Id, TextPosition Begin, TextPosition End, string Content) 
         : base(Id, Begin, End)
         {
-            this.Tokens = Tokens;
+            this.Content = Content;
         }
         public override TokenType getType() => TokenType.UNTIL;
     }
@@ -63,7 +63,7 @@ namespace Flowge.Lexer {
     public class CharToken : Token
     {
         public char Char;
-        public CharToken(uint Id, TextPosition Begin, TextPosition End, char Char) 
+        public CharToken(int Id, TextPosition Begin, TextPosition End, char Char) 
         : base(Id, Begin, End)
         {
             this.Char = Char;
@@ -73,7 +73,7 @@ namespace Flowge.Lexer {
 
     public class UnexpectedToken : Token
     {
-        public UnexpectedToken(uint Id, TextPosition Begin, TextPosition End, char Char) 
+        public UnexpectedToken(int Id, TextPosition Begin, TextPosition End) 
         : base(Id, Begin, End)
         {}
         public override TokenType getType() => TokenType.UNEXPECTED;
@@ -81,7 +81,7 @@ namespace Flowge.Lexer {
 
     public class EndSequenceToken : Token
     {
-        public EndSequenceToken(uint Id, TextPosition Begin, TextPosition End, char Char) 
+        public EndSequenceToken(int Id, TextPosition Begin, TextPosition End) 
         : base(Id, Begin, End)
         {}
         public override TokenType getType() => TokenType.END_SEQUENCE;
