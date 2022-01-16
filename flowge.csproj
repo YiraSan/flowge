@@ -7,8 +7,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!-- <ItemGroup>
     <PackageReference Include="LLVMSharp" Version="5.0.0" />
-  </ItemGroup>
+  </ItemGroup> -->
 
 </Project>
