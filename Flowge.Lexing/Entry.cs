@@ -1,4 +1,4 @@
-namespace Flowge.Lexer 
+namespace Flowge.Lexing 
 {
 
     public static class LinkIds

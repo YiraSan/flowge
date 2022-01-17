@@ -1,4 +1,4 @@
-namespace Flowge.Lexer {
+namespace Flowge.Lexing {
 
     public struct TextPosition
     {
