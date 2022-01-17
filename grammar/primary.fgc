@@ -9,6 +9,7 @@
 # export
 
 @string ALPHA
+@string '_'
 @string string . string
 
 @number INTEGER
