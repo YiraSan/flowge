@@ -29,9 +29,12 @@ namespace Flowge.Grammar
                     {
 
                         string stored = "";
-    
+
 
                         while ()
+                        {
+                            
+                        }
 
                         // todo
                         new WordGroup(null, WordGroupType.OPTIONAL);
@@ -61,21 +64,14 @@ namespace Flowge.Grammar
 
         public bool LoadGrammar(string path)
         {
-
             string file = File.ReadAllText(path+".fgc");
-
             string[] Lines = file.Split("\n");
-
             for (int i = 0; i < Lines.Length; i++)
             {
-                
                 string[] Line = Lines[i].Trim().Split(" ").Where(c=>!c.Equals("")).ToArray();
-
                 if (Line.Length==0) continue;
-
                 if (Line[0].StartsWith("$"))
                 {
-
                     if (Line[0].Equals("$import"))
                     {
                         Console.WriteLine("Uniplemented Function 'import'");
@@ -85,19 +81,16 @@ namespace Flowge.Grammar
                         Console.WriteLine($"[FlowgeGrammar] Invalid command: '{Line[0]}'");
                         return false;
                     }
-
                 }
                 else if (Line[0].StartsWith(":")||Line[0].StartsWith("@"))
                 {
-
-                    
-
+                    if (this.ParseWord(Line)==false)
+                    {
+                        return false;
+                    }
                 }
-
             }
-
             return false;
-            
         }
 
     }
