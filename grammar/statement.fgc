@@ -1,0 +1,14 @@
+$import 'primary'
+
+:inscope expression, statement
+
+:scope '{' ...inscope '}'
+
+#          type     name
+@statement (string) string ('=' expression) ';'
+
+@statement scope
+
+# if statement
+@statement 'if' '(' expression ')' statement
+@statement 'if' '(' expression ')' scope ('else' statement)

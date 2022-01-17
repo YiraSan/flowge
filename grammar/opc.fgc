@@ -1,0 +1,13 @@
+# operator
+
+:EQ '='
+:NOT '!'
+:SUPERIOR '>'
+:INFERIOR '<'
+:AND '&'
+:OR '|'
+
+# comparator
+
+@comparator EQ.EQ, NOT.EQ, SUPERIOR, INFERIOR, SUPERIOR.EQUAL, INFERIOR.EQUAL, AND, AND.AND, OR, OR.OR
+
