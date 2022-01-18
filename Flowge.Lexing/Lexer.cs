@@ -22,12 +22,35 @@ namespace Flowge.Lexing {
             this.Entries = Entries;
         }
 
-        public void Set(string NewValue)
+        public void Reset()
         {
-            this.CurrentValue = NewValue;
             this.Column = 1;
             this.Line = 1;
             this.Index = 0;
+        }
+
+        public void Set(string NewValue)
+        {
+            this.CurrentValue = NewValue;
+            this.Reset();
+        }
+
+        public Token[] Skip()
+        {
+            Token token = this.Next();
+            Token[] tokens = new Token[]{token};
+            if (
+                token.getType()==TokenType.END_SEQUENCE||
+                token.getType()==TokenType.UNEXPECTED
+                )
+            {
+                return tokens;
+            }
+            else
+            {
+                tokens = (Token[]) tokens.Concat(this.Skip());
+                return tokens;
+            }
         }
 
         public Token Next()
