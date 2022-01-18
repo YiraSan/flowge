@@ -10,28 +10,11 @@ namespace Flowge.Grammar
     public class Word
     {
         public WordType Type { get; }
-        public WordGroup[] Groups { get; }
-        public Word(WordType type, WordGroup[] groups)
-        {
-            this.Type = type;
-            this.Groups = groups;
-        }
-    }
-
-    public enum WordGroupType
-    {
-        OPTIONAL,
-        REQUIRED,
-    }
-
-    public class WordGroup
-    {
-        public WordGroupType Type { get; }
         public WordContent[] Contents { get; }
-        public WordGroup(WordContent[] wordContents, WordGroupType type)
+        public Word(WordType type, WordContent[] contents)
         {
-            this.Contents = wordContents;
             this.Type = type;
+            this.Contents = contents;
         }
     }
 
