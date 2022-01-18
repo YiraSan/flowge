@@ -33,7 +33,7 @@ namespace Flowge.Lexing {
         public Token Next()
         {
 
-            if (this.Index >= this.CurrentValue.Length-1)
+            if (this.Index > this.CurrentValue.Length-1)
             {
                 TextPosition end = new TextPosition(this.Column, this.Line);
                 return new EndSequenceToken(-2, end, end);
