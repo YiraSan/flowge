@@ -22,18 +22,6 @@ namespace Flowge.Lexing
         }
     }
 
-    public class ChunkEntry : Entry
-    {
-        public char Begin { get; }
-        public char End { get; }
-        public ChunkEntry(char Begin, char End, bool SupportBreakLines)
-        : base(SupportBreakLines)
-        {
-            this.Begin = Begin;
-            this.End = End;
-        }
-    }
-
     public class UntilEntry : Entry
     {
         public char BeginEnd { get; }

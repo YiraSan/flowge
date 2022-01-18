@@ -13,7 +13,6 @@ namespace Flowge.Lexing {
 
     public enum TokenType
     {
-        CHUNK,
         UNTIL,
         CHAR,
         REGULAR,
@@ -37,17 +36,6 @@ namespace Flowge.Lexing {
         {
             return TokenType.DEFAULT;
         }
-    }
-
-    public class ChunkToken : Token
-    {
-        public Token[] Tokens;
-        public ChunkToken(int Id, TextPosition Begin, TextPosition End, Token[] Tokens) 
-        : base(Id, Begin, End)
-        {
-            this.Tokens = Tokens;
-        }
-        public override TokenType getType() => TokenType.CHUNK;
     }
 
     public class UntilToken : Token
