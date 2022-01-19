@@ -12,6 +12,11 @@
 "aurora" `1.0.0 -> 1.5.0`
 > Aurora will be released if we are sure that everyone (corporations, groups, alone...) can used it without issues.<br>
 > The retro-compatibility system will start with 1.0.0
+> The RGI (Rantemma Graphical Interface) Project
+>   - Include all Flowge CLI functionalities.
+>   - An IDE
+>   - Git support (like Github Desktop)
+>   - A Prune manager/vm
 
 ***
 
