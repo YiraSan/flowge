@@ -1,3 +1,1 @@
-$import 'statement'
-
-:test 'A'
+:test 'A', 'B', 'C'
