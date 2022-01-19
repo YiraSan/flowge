@@ -6,11 +6,19 @@
 :ALPHA 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
 :ALPHA 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
 
-# export
+# string
 
 @string ALPHA
-@string '_'
 @string string . string
+
+# alpha numeric
+
+@alpn '_'
+@alpn string
+@alpn string . INTEGER
+@alpn string . INTEGER . string
+
+# number
 
 @number INTEGER
 @number INTEGER . '.' . INTEGER
