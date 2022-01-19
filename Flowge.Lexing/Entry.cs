@@ -24,11 +24,13 @@ namespace Flowge.Lexing
 
     public class UntilEntry : Entry
     {
-        public char BeginEnd { get; }
-        public UntilEntry(char BeginEnd, bool SupportBreakLines)
+        public char Begin { get; }
+        public char End { get; }
+        public UntilEntry(char Begin, char End, bool SupportBreakLines)
         : base(SupportBreakLines)
         {
-            this.BeginEnd = BeginEnd;
+            this.Begin = Begin;
+            this.End = End;
         }
     }
 

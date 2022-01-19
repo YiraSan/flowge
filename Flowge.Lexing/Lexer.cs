@@ -9,7 +9,7 @@ namespace Flowge.Lexing {
         private int Index = 0;
 
         private Entry[] Entries = new Entry[] {
-            new UntilEntry('\'', true),
+            new UntilEntry('\'', '\'', true),
         };
 
         public Lexer()
@@ -48,7 +48,7 @@ namespace Flowge.Lexing {
             }
             else
             {
-                tokens = (Token[]) tokens.Concat(this.Skip());
+                tokens = (Token[]) tokens.Concat(this.Skip()).ToArray();
                 return tokens;
             }
         }
@@ -93,7 +93,7 @@ namespace Flowge.Lexing {
 
                     UntilEntry entry = (UntilEntry) this.Entries[i];
 
-                    if (this.CurrentValue[this.Index].Equals(entry.BeginEnd))
+                    if (this.CurrentValue[this.Index].Equals(entry.Begin))
                     {
 
                         int Temp = this.Index+1;
@@ -108,7 +108,7 @@ namespace Flowge.Lexing {
                             {
                                 break;
                             } 
-                            else  if (this.CurrentValue[Temp].Equals(entry.BeginEnd))
+                            else  if (this.CurrentValue[Temp].Equals(entry.End))
                             {
                                 this.Column = NC;
                                 this.Line = NL;
