@@ -1,38 +1,24 @@
 namespace Flowge.Grammar
 {
 
-    public enum WordType
+    public enum WordKind
     {
-        LOCAL,
-        EXPORTED,
+        REFERENCE,
+        KEYWORD,
     }
 
     public class Word
     {
-        public WordType Type { get; }
-        public WordContent[] Contents { get; }
-        public Word(WordType type, WordContent[] contents)
-        {
-            this.Type = type;
-            this.Contents = contents;
-        }
-    }
 
-    public enum WordContentType
-    {
-        REFERENCE,
-        KEY_WORD,
-    }
+        public WordKind wordKind { get; }
+        public string content { get; }
 
-    public class WordContent
-    {
-        public WordContentType Type { get; }
-        public string Content { get; }
-        public WordContent(string content, WordContentType type)
+        public Word(string content, WordKind wordKind)
         {
-            this.Content = content;
-            this.Type = type;
+            this.content = content;
+            this.wordKind = wordKind;
         }
+
     }
 
 }
