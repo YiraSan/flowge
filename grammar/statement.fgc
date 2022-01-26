@@ -5,7 +5,7 @@ $import 'primary'
 #          type     name
 @statement (string) string ('=' expression) ';'
 
-@statement '{' ..inscope '}'
+@statement '{' &inscope '}'
 
 # if statement
 @statement 'if' '(' expression ')' statement
