@@ -1,4 +1,4 @@
-namespace Flowge.Math
+namespace Flowge.Tools
 {
 
     public class Entry
