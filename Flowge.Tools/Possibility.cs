@@ -3,8 +3,8 @@ namespace Flowge.Tools
 
     public class Entry
     {
-        public Object Content { get; }
-        public bool Required { get; }
+        public Object Content { get; set; }
+        public bool Required { get; set; }
         public Entry(Object content, bool required)
         {
             this.Content = content;
