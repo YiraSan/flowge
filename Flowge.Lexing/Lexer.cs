@@ -8,7 +8,7 @@ namespace Flowge.Lexing {
         private uint Line = 1;
         private int Index = 0;
 
-        private Entry[] Entries = new Entry[] {
+        private LexerEntry[] Entries = new LexerEntry[] {
             new UntilEntry('\'', '\'', true),
         };
 
@@ -17,7 +17,7 @@ namespace Flowge.Lexing {
 
         }
 
-        public Lexer(Entry[] Entries)
+        public Lexer(LexerEntry[] Entries)
         {
             this.Entries = Entries;
         }

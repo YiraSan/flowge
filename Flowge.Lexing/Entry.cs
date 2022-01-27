@@ -11,18 +11,18 @@ namespace Flowge.Lexing
         }
     }
 
-    public abstract class Entry 
+    public abstract class LexerEntry 
     {
         public bool SupportBreakLines { get; }
         public uint Id { get; }
-        public Entry(bool SupportBreakLines)
+        public LexerEntry(bool SupportBreakLines)
         {
             this.SupportBreakLines = SupportBreakLines;
             this.Id = LinkIds.NewId();
         }
     }
 
-    public class UntilEntry : Entry
+    public class UntilEntry : LexerEntry
     {
         public char Begin { get; }
         public char End { get; }
@@ -34,7 +34,7 @@ namespace Flowge.Lexing
         }
     }
 
-    public class RegularEntry : Entry
+    public class RegularEntry : LexerEntry
     {
         public List<char> Chars { get; }
 
@@ -58,7 +58,7 @@ namespace Flowge.Lexing
         public static implicit operator RegularEntry(List<char> chrs) => new(chrs, false);
     }
 
-    public class CharEntry : Entry
+    public class CharEntry : LexerEntry
     {
         public char Char { get; set; }
         public CharEntry(char Char)
