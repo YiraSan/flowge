@@ -19,5 +19,8 @@
   "dependencies": {
     "colors": "^1.4.0",
     "llvm-bindings": "^0.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.18"
   }
 }

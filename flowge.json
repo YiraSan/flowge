@@ -1,0 +1,7 @@
+{
+    "name": "flowge",
+    "run": "main",
+    "build": "snowball",
+    "license": "MIT",
+    "repo": "https://github.com/rantemma/flowge"
+}
