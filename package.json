@@ -1,0 +1,23 @@
+{
+  "bin": {
+    "flg": "lib/flg.js"
+  },
+  "name": "flowge",
+  "description": "Flowge is the official language of Rantemma",
+  "version": "0.0.1",
+  "main": "lib/module.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rantemma/flowge.git"
+  },
+  "author": "YiraSan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rantemma/flowge/issues"
+  },
+  "homepage": "https://github.com/rantemma/flowge#readme",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "llvm-bindings": "^0.3.3"
+  }
+}
