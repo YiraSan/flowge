@@ -1,11 +1,30 @@
-# MacOs
+# Install Flowge
+
+## Supported OS
+
+|  | x86_64 | ARM64 |
+| :---: | :---: | :---: |
+| macOS 10.15 Catalina | ✅ | / |
+| macOS 11 Big Sur | ✅ | ✅ |
+| macOS 12 Monterey | ✅ | ✅ |
+| Ubuntu 18.04 | ✅ | ✅ |
+| Ubuntu 20.04 | ✅ | ✅ |
+| Ubuntu 21.10 | ✅ | ✅ |
+| Windows 10 | ❌ | ❌ |
+| Windows 11 | ❌ | ❌ |
+
+> Use [WSL](https://docs.microsoft.com/fr-fr/windows/wsl/install) with [ubuntu](https://www.microsoft.com/en-us/p/ubuntu/9nblggh4msv6) on Windows to use Flowge.
+
+## MacOs
 
 ```
 brew install cmake llvm node
 npm install -g flowge
 ```
 
-# Linux (ubuntu)
+> Need [homebrew](https://brew.sh/)
+
+## Ubuntu
 
 Essential:
 ```sh
@@ -19,14 +38,10 @@ cd ~
 curl -sL https://deb.nodesource.com/setup_16.x -o nodesource_setup.sh
 bash nodesource_setup.sh
 apt install nodejs
+npm install -g npm@latest
 ```
 
-NodeJS + npm (wsl2+ubuntu): 
-```
-apt-get update
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-nvm install --lts
-```
+> On wsl, use nvm to install nodejs & npm
 
 CMake:
 ```
