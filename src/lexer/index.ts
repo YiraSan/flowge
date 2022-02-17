@@ -1,6 +1,6 @@
 const digits = "0123456789";
 const alphas = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const operators = "+=/*<>";
+const operators = "=+-/*<>";
 const delimiters = ";(){}[],:";
 
 const keywords = [
@@ -48,6 +48,8 @@ export interface Token {
         line: number,
     },
 
+    file: string,
+
     end: {
         column: number,
         line: number,
@@ -55,7 +57,7 @@ export interface Token {
 
 }
 
-export function tokenize(text: string): Token[] {
+export function tokenize(text: string, file: string): Token[] {
 
     const result: Token[] = [];
 
@@ -72,6 +74,16 @@ export function tokenize(text: string): Token[] {
             continue;
         } else if (text[i] == " ") {
             column++;
+            continue;
+        } else if (text[i] == '/' && text[i+1] == '/') {
+            i++;
+            while (true){
+                i++;
+                if (text[i] == '\n' || text[i] == '\r' || text[i] == null) {
+                    break;
+                }
+            }
+            i--;
             continue;
         }
 
@@ -106,6 +118,7 @@ export function tokenize(text: string): Token[] {
             result.push({
                 type: type,
                 content: full,
+                file: file,
                 begin: begin,
                 end: {
                     line: line,
@@ -157,6 +170,7 @@ export function tokenize(text: string): Token[] {
                 type: type,
                 content: full,
                 begin: begin,
+                file: file,
                 end: {
                     line: line,
                     column: column,
@@ -168,6 +182,7 @@ export function tokenize(text: string): Token[] {
                 type: "operator",
                 content: text[i],
                 begin: begin,
+                file: file,
                 end: {
                     line: line,
                     column: column,
@@ -178,6 +193,7 @@ export function tokenize(text: string): Token[] {
             result.push({
                 type: "delimiter",
                 content: text[i],
+                file: file,
                 begin: begin,
                 end: {
                     line: line,
@@ -189,6 +205,7 @@ export function tokenize(text: string): Token[] {
             result.push({
                 type: "unknown",
                 content: text[i],
+                file: file,
                 begin: begin,
                 end: {
                     line: line,
@@ -202,6 +219,7 @@ export function tokenize(text: string): Token[] {
     result.push({
         type: "eof",
         content: "",
+        file: file,
         begin: {
             line: -1,
             column: -1,
