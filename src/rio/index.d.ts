@@ -72,7 +72,7 @@ export interface RIOBinaryExpr {
 export interface RIOCompExpr {
     comp_left: RIOExpr,
     comp_right: RIOExpr,
-    comp_op: "<" | "<=" | "==" | ">=" | "=="
+    comp_op: "<" | "<=" | "==" | "!=" | ">=" | ">"
 }
 
 export interface RIOLogicExpr {
@@ -83,6 +83,14 @@ export interface RIOLogicExpr {
 
 export interface RIOIdExpr {
     id_name: string,
+}
+
+export interface FlowgeProject {
+    name: string,
+    run: string,
+    version: string,
+    license: string | null,
+    repo: string | null,
 }
 
 export type RIOExpr = 

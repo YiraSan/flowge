@@ -1,6 +1,6 @@
 {
   "bin": {
-    "flg": "lib/flg.js"
+    "flg": "lib/cli/index.js"
   },
   "name": "flowge",
   "description": "Flowge is the official language of Rantemma",

@@ -1,7 +1,7 @@
 {
     "name": "flowge",
     "run": "main",
-    "build": "snowball",
+    "version": "snowball206",
     "license": "MIT",
     "repo": "https://github.com/rantemma/flowge"
 }
