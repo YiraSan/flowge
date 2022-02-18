@@ -93,7 +93,70 @@ export function tokenize(text: string, file: string): Token[] {
         };
 
         // id
-        if (isAlpha(text[i]) || text[i] == '_') {
+        if (text[i] == "'" && text[i+2] == "'") {
+
+            let char = text[i+1];
+
+            i+=2;
+            column+=3;
+
+            result.push({
+                type: "char",
+                content: char,
+                file: file,
+                begin: begin,
+                end: {
+                    line: line,
+                    column: column,
+                }
+            });
+
+        } else if (text[i] == '"') {
+
+            let full = "";
+            let fmr = i+1;
+            let fmrc = 1;
+
+            while (true) {
+                if (text[fmr]=='"') {
+                    break;
+                } else if (text[fmr]=='\n'||text[fmr]=='\r'||fmr>=text.length) {
+                    break;
+                } else {
+                    full += text[fmr];
+                    fmr++;
+                    fmrc++;
+                }
+            }
+        
+            if (text[fmr]=='"') {
+                i = fmr;
+                column += fmrc+1;
+                result.push({
+                    type: "string",
+                    content: full,
+                    file: file,
+                    begin: begin,
+                    end: {
+                        line: line,
+                        column: column,
+                    }
+                });
+            } else {
+                column++;
+                result.push({
+                    type: "unknown",
+                    content: text[i],
+                    file: file,
+                    begin: begin,
+                    end: {
+                        line: line,
+                        column: column,
+                    }
+                });
+            }
+
+        } else if (isAlpha(text[i]) || text[i] == '_') {
             let full = text[i];
             i++;
             column++;

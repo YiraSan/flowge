@@ -1,18 +1,25 @@
 // statement
 
-export interface RIODeclaration {
+export interface RIODeclarationStatement {
     dec_name: string,
     dec_type: string,
     dec_expr: RIOExpr,
 }
 
-export interface RIOAssign {
+export interface RIOAssignStatement {
     asg_name: string,
     asg_expr: RIOExpr,
 }
 
-export type RIOStatement = 
-    RIODeclaration | RIOAssign;
+export interface RIOReturnStatement {
+    return_expr: RIOExpr,
+}
+
+export interface RIOBlockStatement {
+    block_st: RIOStatement[],
+}
+
+export type RIOStatement = RIODeclarationStatement | RIOAssignStatement | RIOReturnStatement | RIOBlockStatement;
 
 // object
 
@@ -30,7 +37,11 @@ export interface RIOFuncSignature {
     func_args: RIOFuncArg[],
 }
 
-export type RIOObject = RIOFuncAccess | RIOFuncSignature | RIOFuncArg;
+export interface RIOFunc extends RIOFuncSignature {
+    func_block: RIOBlockStatement,
+}
+
+export type RIOObject = RIOFunc;
 
 // expression
 
@@ -88,7 +99,7 @@ export interface RIOIdExpr {
 export interface FlowgeProject {
     name: string,
     run: string,
-    version: string,
+    build: string,
     license: string | null,
     repo: string | null,
 }

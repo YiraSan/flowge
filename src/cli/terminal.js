@@ -1,22 +1,14 @@
-import colors from 'colors';
-
-var ln = 0;
-
-function countLine(str: string){
-    if (typeof str !== "string") return 0;
-    return str.split("\n").length;
-}
+const colors = require('colors');
 
 export const Terminal = {
 
-    tag() {
-        Terminal.print("[ 🐲 ".gray + "Flowge".black + " ]".gray)
+    tag: () => {
+        Terminal.print("[ 🐲 ".gray + "Flowge".black + " ]".gray);
         return Terminal;
     },
 
-    print(str: string) {
-        ln += countLine(str);
-        process.stdout.write(str+"".reset);
+    print: (qa) => {
+        process.stdout.write(qa+"".reset);
         return Terminal;
     },
   
@@ -30,26 +22,22 @@ export const Terminal = {
         return Terminal;
     },
   
-    println: (str: string) => {
+    println: (str) => {
         Terminal.print(str).ln();
         return Terminal;
     },
   
-    tab: (str: string) => {
+    tab: (str) => {
         return "    "+str.split("\n").join("\n    ");
     }, 
 
-    clear: (line: number) => {
+    clear: (line) => {
         const clearLastLine = () => {
             process.stdout.moveCursor(0, -1); 
             process.stdout.clearLine(1); 
         }
         for (let i = 0; i < line; i++) {
             clearLastLine();
-            ln--;
-            if (ln == 0) {
-                break;
-            }
         }
         process.stdout.moveCursor(0, -1);
         return Terminal;

@@ -2,8 +2,9 @@
 
 import { Token } from "../lexer";
 
-import { RIOFuncSignature, RIOFuncArg } from '../rio';
+import { RIOFuncSignature, RIOFuncArg, RIOFunc } from '../rio';
 import { EOF_ERR, EXPECTED_ERR } from "./err";
+import { parseBlockStatement } from "./statement";
 
 export function parseFuncSignature(tokens: Token[], pos?: number): {
     pos: number, // position
@@ -66,6 +67,29 @@ export function parseFuncSignature(tokens: Token[], pos?: number): {
                         }
                     };
                 }
+            }
+        }
+    }
+    return "invalid";
+}
+
+export function parseFunc(tokens: Token[], pos?: number): {
+    pos: number, // position
+    res: RIOFunc, // result
+} | "invalid" | "error" {
+    if (pos == null) pos = 0;
+    const signature = parseFuncSignature(tokens, pos);
+    if (signature == "error") {
+        return "error";
+    } else if (signature != "invalid") {
+        pos = signature.pos;
+        const block = parseBlockStatement(tokens, pos);
+        if (block == "error") {
+            return "error";
+        } else if (block != "invalid") {
+            return {
+                pos: signature.pos,
+                res: {...signature.res, func_block: block.res}
             }
         }
     }

@@ -4,10 +4,12 @@ import fs from 'fs';
 import path from 'path';
 
 import { tokenize } from '../lexer';
+import { parseFile } from '../parser';
 
 import { FlowgeProject } from '../rio';
+import { Terminal } from './terminal';
 
-const version = `${require('../../flowge.json').version.yellow} ${require("../../package.json").version}`;
+const version = `${require('../../flowge.json').build.yellow} ${require("../../package.json").version}`;
 
 const args = process.argv.slice(2);
 
@@ -36,14 +38,12 @@ function getFilesRecursively(directory: string) {
     return files;
 }
 
-import { Terminal } from './terminal';
-
 if (commandArgs[0] === "init") {
     if (helpFlag) {
         Terminal.println(`Usage: ${"init".yellow} <name> [--force]`);
         Terminal.println(`Description: Create a new project in the current dir`);
     } else {
-        if (commandArgs[1] != null) {
+        if (typeof commandArgs[1] == "string") {
             const dir = fs.readdirSync(".");
             if (dir.length===0 || forceFlag) {
                 if (dir.includes("build")) fs.rmSync("build", {"recursive": true});
@@ -53,8 +53,8 @@ if (commandArgs[0] === "init") {
                 fs.writeFileSync("src/main.flg", '// see: https://flowgedocs.github.io/', "utf-8");
                 fs.writeFileSync("flowge.json", JSON.stringify({
                     name: commandArgs[1],
+                    build: "initial",
                     run: "main",
-                    version: "initial",
                     license: null,
                     repo: "https://github.com/rantemma/flowge",
                 }, null, 2), "utf-8");
@@ -86,8 +86,8 @@ if (commandArgs[0] === "init") {
         if (typeof project.name !== "string" || project.name == "") {
             Terminal.tag().space().println("Empty flowge project name".red);
             process.exit();
-        } else if (typeof project.version !== "string" || project.version == "") {
-            Terminal.tag().space().println("Empty flowge project version".red);
+        } else if (typeof project.build !== "string" || project.build == "") {
+            Terminal.tag().space().println("Empty flowge project build".red);
             process.exit();
         } else if (typeof project.run !== "string" || project.run == "") {
             Terminal.tag().space().println("Empty flowge project entry point (run)".red);
@@ -107,8 +107,8 @@ if (commandArgs[0] === "init") {
 
         Terminal.println(Terminal.tab("Parsing..."));
 
-        let namespaces = [];
-        let running = [];
+        let namespaces: any[] = [];
+        let running: any[] = [];
 
         flgs.forEach((v,i)=>{
             // windows compatibility (yeah if someone absolutely want to use windows instead of wsl ;-;)
@@ -120,21 +120,21 @@ if (commandArgs[0] === "init") {
             const t = tokenize(text, "./src/"+v);
             if (v.includes("/")) {
                 const r = parseFile(t);
-                if (r == -1 || r == -2) {
+                if (r == "error") {
                     process.exit();
                 }
                 namespaces.push({
                     name: v.split("/")[0],
-                    space: r.rt,
+                    funcs: r,
                 });
             } else {
-                const r = parseRunnable(t);
-                if (r == -1 || r == -2) {
+                const r = parseFile(t);
+                if (r == "error") {
                     process.exit();
                 }
                 running.push({
                     name: v.split("/")[0].split(".flg")[0],
-                    body: r.rt,
+                    body: r,
                 });
             }
         });
@@ -150,6 +150,11 @@ if (commandArgs[0] === "init") {
         }
 
         Terminal.println(Terminal.tab("Compiling..."));
+
+        fs.writeFileSync("build/"+project.run+".rp", JSON.stringify({
+            ...project,
+            funcs: [...namespaces,...runs]
+        }, null, "    "), "utf-8");
         
     }
 } else if (helpFlag || commandArgs[0] === "help") {
