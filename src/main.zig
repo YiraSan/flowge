@@ -16,7 +16,7 @@ pub fn main() !void {
 
     var token = try file.next_token();
     defer token.deinit();
-    while (token.token_type != TokenType.EOF and token.token_type != TokenType.UNDEFINED) {
+    while (token.token_type != TokenType.EOF) {
         token.print();
         token.deinit();
         token = try file.next_token();
