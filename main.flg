@@ -1,0 +1,19 @@
+import parallel::console::{print, println, inputln};
+import parallel::math::random_u8;
+
+main {
+    println("~ Guess the number ~");
+    u8 number = random_u8(0, 100);
+    loop {
+        print("> ");
+        string result = inputln(1);
+        if result > number {
+            println("less!");
+        } else if result < number {
+            println("more!");
+        } else {
+            println("You win!!");
+            break;
+        }
+    }
+} 

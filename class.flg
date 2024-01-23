@@ -1,0 +1,15 @@
+Animal (
+    age: u8;
+
+    noise: () -> string;
+)
+
+Dog! Animal (
+    noise {
+        return "wouaphe wouaphe";
+    }
+)
+
+main: () -> void {
+
+}
