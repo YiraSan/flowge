@@ -1,3 +1,12 @@
-main {
-    return 2*(1+1);
+"test"
+
+1 + 1
+
+void main() {
+
 }
+
+49.3
+
+0xFF00FF
+0b01010011
