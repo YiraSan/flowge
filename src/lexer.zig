@@ -4,7 +4,8 @@ const Allocator = std.mem.Allocator;
 pub const TokenType = enum {
 
     UNIQUE,
-    KEY,
+    IDENTIFIER,
+    OPERATOR,
     NUMBER,
     I_STR,
     I_CHAR,
@@ -14,16 +15,17 @@ pub const TokenType = enum {
     FLOAT,
     HEXADECIMAL,
     BINARY,
+    OCTAL,
     EOF,
     UNDEFINED,
     __END,
+    LOP,
 
 };
 
 pub const Token = struct {
-    begin_line: usize,
+    line: usize,
     begin_column: usize,
-    end_line: usize,
     end_column: usize,
     token_type: TokenType,
     content: []u8,
@@ -34,15 +36,14 @@ pub const Token = struct {
         token.alloc = alloc;
         token.content = "";
         token.token_type = TokenType.UNDEFINED;
-        token.begin_line = 0;
+        token.line = 0;
         token.begin_column = 0;
-        token.end_line = 0;
         token.end_column = 0;
         return token; 
     }
 
     pub fn print(self: *Token) void {
-        std.debug.print("Token {{\n  begin_line: {d};\n  begin_column: {d};\n  end_line: {d};\n  end_column: {d};\n  type: {};\n  content: {s};\n}}\n", .{self.begin_line, self.begin_column, self.end_line, self.end_column, self.token_type, self.content});
+        std.debug.print("Token {{\n  line: {d};\n  begin_column: {d};\n  end_column: {d};\n  type: {};\n  content: {s};\n}}\n", .{self.line, self.begin_column, self.end_column, self.token_type, self.content});
     }
 
     pub fn deinit(self: *Token) void {
@@ -56,6 +57,7 @@ pub const File = struct {
     column: usize,
     index: usize,
     text: []const u8,
+    path: []const u8,
     alloc: Allocator,
 
     pub fn init(alloc: Allocator, path: []const u8) !*File {
@@ -63,6 +65,9 @@ pub const File = struct {
         file.alloc = alloc;
         file.line = 1;
         file.column = 1;
+        const temp: []u8 = try alloc.alloc(u8, path.len);
+        std.mem.copyForwards(u8, temp, path);
+        file.path = temp;
         file.index = 0;
         file.text = try std.fs.cwd().readFileAlloc(alloc, path, std.math.maxInt(u32));
         return file;
@@ -70,6 +75,7 @@ pub const File = struct {
 
     pub fn deinit(self: *File) void {
         self.alloc.free(self.text);
+        self.alloc.free(self.path);
         self.alloc.destroy(self);
     }
 
@@ -84,9 +90,8 @@ pub const File = struct {
         self.index += 1;
         self.column = 1;
         self.line += 1;
-        token.begin_line = self.line;
+        token.line = self.line;
         token.begin_column = self.column;
-        token.end_line = self.line;
         token.end_column = self.column;
     }
 
@@ -134,14 +139,14 @@ pub const File = struct {
                     } else if (current == '\n') {
                         self.__nline(token);
                         try self._next( token);
-                    } else if (std.ascii.isAlphabetic(current)) { // KEY
-                        token.token_type = TokenType.KEY;
+                    } else if (std.ascii.isAlphabetic(current)) { // IDENTIFIER
+                        token.token_type = TokenType.IDENTIFIER;
                         token.content = try self.alloc.alloc(u8, 1);
                         token.content[0] = current;
                         self.__ecol(token);
                         try self._next(token);
                         _nerr(token);
-                        token.token_type = TokenType.KEY;
+                        token.token_type = TokenType.IDENTIFIER;
                     } else if (std.ascii.isDigit(current)) { // NUMBER
                         token.token_type = TokenType.NUMBER;
                         token.content = try self.alloc.alloc(u8, 1);
@@ -163,13 +168,32 @@ pub const File = struct {
                         _nerr(token);
                         token.token_type = TokenType.I_CHAR;
                     } else {
-                        self.__ecol(token);
-                        token.token_type = TokenType.UNIQUE;
-                        token.content = try self.alloc.alloc(u8, 1);
-                        token.content[0] = current;
+                        switch (current) {
+                            '+', '-', '*', '/', '<', '>', '%', '=' => {
+                                token.token_type = TokenType.LOP;
+                                token.content = try self.alloc.alloc(u8, 1);
+                                token.content[0] = current;
+                                self.__ecol(token);
+                                try self._next(token);
+                                _nerr(token);
+                                token.token_type = TokenType.OPERATOR;
+                            },
+                            else => {
+                                self.__ecol(token);
+                                token.token_type = TokenType.UNIQUE;
+                                token.content = try self.alloc.alloc(u8, 1);
+                                token.content[0] = current;
+                            }
+                        }
                     }
                 },
-                TokenType.KEY => {
+                TokenType.LOP => {
+                    if (current == '=') {
+                        try self.__reg(token);
+                    }
+                    token.token_type = TokenType.__END;
+                },
+                TokenType.IDENTIFIER => {
                     if (std.ascii.isAlphanumeric(current)) {
                         try self.__reg(token);
                         _nerr(token);
@@ -193,6 +217,10 @@ pub const File = struct {
                                 _nerr(token);
                             } else if (current == 'x') {
                                 token.token_type = TokenType.HEXADECIMAL;
+                                try self.__reg(token);
+                                _nerr(token);
+                            } else if (current == 'o') {
+                                token.token_type = TokenType.OCTAL;
                                 try self.__reg(token);
                                 _nerr(token);
                             } else {
@@ -221,6 +249,14 @@ pub const File = struct {
                 },
                 TokenType.HEXADECIMAL => {
                     if (std.ascii.isHex(current)) {
+                        try self.__reg(token);
+                        _nerr(token);
+                    } else {
+                        token.token_type = TokenType.__END;
+                    }
+                },
+                TokenType.OCTAL => {
+                    if (current == '0' or current == '1' or current == '2' or current == '3' or current == '4' or current == '5' or current == '6' or current == '7' or current == '8') {
                         try self.__reg(token);
                         _nerr(token);
                     } else {
@@ -258,9 +294,8 @@ pub const File = struct {
 
     pub fn next_token(self: *File) !*Token {
         var token = try Token.init(self.alloc);
-        token.begin_line = self.line;
+        token.line = self.line;
         token.begin_column = self.column;
-        token.end_line = self.line;
         token.end_column = self.column;
         try self._next(token);
         return token;
