@@ -7,7 +7,8 @@ const File = lexer.File;
 const Token = lexer.Token;
 const TokenType = lexer.TokenType;
 
-const Tokens = std.ArrayList(*Token);
+const llvm = @import("llvm/llvm.zig");
+const types = llvm.types;
 
 // Abstract Syntax Tree
 
@@ -26,6 +27,11 @@ pub const NumberExprNode = union(enum) {
         const expr: *ExprNode = try alloc.create(ExprNode);
         expr.* = .{ .number = self };
         return expr;
+    }
+
+    pub fn codegen(self: *NumberExprNode) types.LLVMValueRef {
+        _ = self;
+        
     }
 };
 
@@ -155,7 +161,7 @@ pub const ExprNode = union(enum) {
 pub const Parser = struct {
     alloc: Allocator,
     file_path: []const u8,
-    tokens: Tokens,
+    tokens: std.ArrayList(*Token),
     current_index: usize,
 
     pub fn init(alloc: Allocator, file_path: []const u8) !*Parser {
@@ -164,7 +170,7 @@ pub const Parser = struct {
         const temp: []u8 = try alloc.alloc(u8, file_path.len);
         std.mem.copyForwards(u8, temp, file_path);
         parser.file_path = temp;
-        parser.tokens = Tokens.init(alloc);
+        parser.tokens = std.ArrayList(*Token).init(alloc);
         parser.current_index = 0;
         var file = try File.init(alloc, file_path);
         defer file.deinit();
