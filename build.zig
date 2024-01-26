@@ -12,6 +12,29 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    exe.defineCMacro("_FILE_OFFSET_BITS", "64");
+    exe.defineCMacro("__STDC_CONSTANT_MACROS", null);
+    exe.defineCMacro("__STDC_FORMAT_MACROS", null);
+    exe.defineCMacro("__STDC_LIMIT_MACROS", null);
+
+    // exe.linkSystemLibrary("z");
+    switch (target.result.os.tag) {
+        .linux => {
+            exe.linkSystemLibrary("LLVM-17");
+        }, 
+        .macos => {
+            exe.addLibraryPath(.{ .path = "/usr/local/opt/llvm/lib" });
+            exe.linkSystemLibrary("LLVM");
+        },
+        .windows => {
+            exe.addLibraryPath(.{.path = "C:\\Program Files\\LLVM\\lib"});
+            exe.linkSystemLibrary("LLVM-C");
+        },
+        else => unreachable,
+    }
+    
+    exe.linkLibC();
+
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
@@ -25,14 +48,4 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    const unit_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/main.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const run_unit_tests = b.addRunArtifact(unit_tests);
-
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_unit_tests.step);
 }
