@@ -7,13 +7,20 @@ const File = lexer.File;
 const Token = lexer.Token;
 const TokenType = lexer.TokenType;
 
+const project = @import("./project.zig");
+const Module = project.Module;
+
 const llvm = @import("llvm/llvm.zig");
 const types = llvm.types;
+const core = llvm.core;
 
 // Abstract Syntax Tree
 
 pub const NumberExprNode = union(enum) {
-    integer: i64,
+    integer: struct {
+        sign: bool,
+        value: c_ulonglong,
+    },
 
     pub fn init(alloc: Allocator) !*NumberExprNode {
         return try alloc.create(NumberExprNode);
@@ -29,13 +36,18 @@ pub const NumberExprNode = union(enum) {
         return expr;
     }
 
-    pub fn codegen(self: *NumberExprNode) types.LLVMValueRef {
-        _ = self;
-        
+    pub fn codegen(self: *NumberExprNode, module: *Module) !types.LLVMValueRef {
+        _ = module;
+        return switch (self.*) {
+            .integer => |v| {
+                return core.LLVMConstInt(core.LLVMInt64Type(), v.value, v.sign);
+            },
+        };
     }
 };
 
 pub const ReferenceExprNode = struct {
+    token_index: usize,
     identifier: []const u8,
 
     pub fn init(alloc: Allocator) !*ReferenceExprNode {
@@ -51,6 +63,14 @@ pub const ReferenceExprNode = struct {
         const expr: *ExprNode = try alloc.create(ExprNode);
         expr.* = .{ .reference = self };
         return expr;
+    }
+
+    pub fn codegen(self: *ReferenceExprNode, module: *Module) !types.LLVMValueRef {
+        if (module.scope.contains(self.identifier)) {
+            module.parser.err_token(self.token_index, "undeclared reference", 31);
+            std.os.exit(0); // todo exit(1)
+        }
+        return module.scope.get(self.identifier);
     }
 };
 
@@ -104,6 +124,32 @@ pub const BinaryExprNode = struct {
         expr.* = .{ .binary = self };
         return expr;
     }
+
+    pub fn codegen(self: *BinaryExprNode, module: *Module) !types.LLVMValueRef {
+        const left = try self.lhs.codegen(module);
+        const right = try self.rhs.codegen(module);
+
+        return switch (self.operator) {
+            Operator.Add => {
+                return core.LLVMBuildAdd(module.llvm_builder, left, right, "addtmp");
+            },
+            Operator.Sub => {
+                return core.LLVMBuildSub(module.llvm_builder, left, right, "subtmp");
+            },
+            Operator.Mul => {
+                return core.LLVMBuildMul(module.llvm_builder, left, right, "multmp");
+            },
+            Operator.Div => {
+                return core.LLVMBuildSDiv(module.llvm_builder, left, right, "divtmp");
+            },
+            Operator.Superior => {
+                return core.LLVMBuildICmp(module.llvm_builder, types.LLVMIntPredicate.LLVMIntSGT, left, right, "cmptmp");
+            },
+            Operator.Inferior => {
+                return core.LLVMBuildICmp(module.llvm_builder, types.LLVMIntPredicate.LLVMIntSLT, left, right, "cmptmp");
+            }
+        };
+    }
 };
 
 pub const CallExprNode = struct {
@@ -128,6 +174,18 @@ pub const CallExprNode = struct {
         const expr: *ExprNode = try alloc.create(ExprNode);
         expr.* = .{ .call = self };
         return expr;
+    }
+
+    pub fn codegen(self: *CallExprNode, module: *Module) !types.LLVMValueRef {
+        const function = core.LLVMGetNamedFunction(module.llvm_module, self.callee.identifier);
+        var args = std.ArrayList(types.LLVMValueRef).init(module.alloc);
+        if (core.LLVMCountParams(function) != args.items.len) {
+            module.parser.err_token(self.callee.token_index, try std.fmt.allocPrint(module.alloc, "expected {d} parameters, found {d}", .{args.items.len, core.LLVMCountParams(function)}), 31);
+        }
+        for (self.args.items) |arg| {
+            args.append(try arg.codegen(module));
+        }
+        return core.LLVMBuildCall2(module.llvm_builder, types.LLVMCallConv.LLVMCCallConv, function, args.items.ptr, args.items.len, "calltmp");
     }
 };
 
@@ -154,6 +212,25 @@ pub const ExprNode = union(enum) {
         }
         alloc.destroy(self);
     }
+
+    pub fn codegen(self: *ExprNode, module: *Module) !types.LLVMValueRef {
+        return switch (self.*) {
+            .number => |node| try node.codegen(module),
+            .reference => |node| try node.codegen(module),
+            .binary => |node| try node.codegen(module),
+            .call => |node| try node.codegen(module),
+        };
+    }
+};
+
+pub const PrototypeNode = struct {
+    identifier: []const u8,
+    args: [][]const u8,
+};
+
+pub const FunctionNode = struct {
+    prototype: *PrototypeNode,
+    body: *ExprNode,
 };
 
 // Parser
@@ -192,8 +269,8 @@ pub const Parser = struct {
         self.alloc.destroy(self);
     }
 
-    fn err_token(self: *Parser, message: []const u8, color: u8) void {
-        const tk = self.tokens.items[self.current_index];
+    fn err_token(self: *Parser, token_index: usize, message: []const u8, color: u8) void {
+        const tk = self.tokens.items[token_index];
         print("{s}:{d}:{d} \u{001b}[{d}m{s}\u{001b}[0m\n", .{
             self.file_path, tk.line, tk.begin_column, color, message});
         print("  \u{001b}[30m{d} |\u{001b}[0m", .{tk.line});
@@ -204,7 +281,7 @@ pub const Parser = struct {
                     print(" ", .{});
                 }
                 ltc = token.end_column;
-                if (i == self.current_index) {
+                if (i == token_index) {
                     print("\u{001b}[4;{d}m", .{color});
                 }
                 switch (token.token_type) {
@@ -212,7 +289,7 @@ pub const Parser = struct {
                     .I_STR => print("\"{s}\"", .{token.content}),
                     else => print("{s}", .{token.content}),
                 }
-                if (i == self.current_index) {
+                if (i == token_index) {
                     print("\u{001b}[0m", .{});
                 }
             }
@@ -221,7 +298,7 @@ pub const Parser = struct {
     }
 
     fn logerr(self: *Parser, message: []const u8, color: u8) noreturn {
-        self.err_token(message, color);
+        self.err_token(self.current_index, message, color);
         std.os.exit(0); // todo: turn back to 1
     }
 
@@ -242,13 +319,18 @@ pub const Parser = struct {
     inline fn next_token(self: *Parser) void {
         self.current_index += 1;
         if (self.current_index >= self.tokens.items.len) {
-            self.logerr("unexpected end of file", 31);
+            print("{s} \u{001b}[{d}m{s}\u{001b}[0m\n\n", .{
+            self.file_path, 31, "unexpected end of file"});
+            std.os.exit(0); // todo: exit(1)
         }
     }
 
     pub fn parseNumberExpr(self: *Parser) !*ExprNode {
         const expr = try NumberExprNode.init(self.alloc);
-        expr.* = .{ .integer = try std.fmt.parseInt(i32, self.current().content, 0) };
+        expr.* = .{ .integer = .{ 
+            .value = try std.fmt.parseInt(c_ulonglong, self.current().content, 0),
+            .sign = true,
+        } };
         self.next_token(); // consume number
         return expr.into_expr(self.alloc);
     }
@@ -264,6 +346,7 @@ pub const Parser = struct {
 
     pub fn parseReferenceExpr(self: *Parser) anyerror!*ExprNode {
         const ref = try ReferenceExprNode.init(self.alloc);
+        ref.token_index = self.current_index;
         ref.identifier = self.current().content;
         self.next_token(); // consume identifier
         if (self.current_char() != '(')
@@ -300,7 +383,7 @@ pub const Parser = struct {
                     return switch (self.current().token_type) {
                         .NUMBER => {
                             const expr = try self.parseNumberExpr();
-                            expr.number.integer = -expr.number.integer;
+                            expr.number.integer.sign = !expr.number.integer.sign;
                             return expr;
                         },
                         else => self.unexpected_token(),
@@ -356,4 +439,31 @@ pub const Parser = struct {
         return self.parseBinOPRHS(0, try self.parsePrimaryExpr());
     }
 
+    pub fn parsePrototype(self: *Parser) !*PrototypeNode {
+         
+    }
+
+    pub fn parseTopLevel(self: *Parser) anyerror!*TopLevel {
+        while (self.current_index < self.tokens.items.len) {
+            switch (self.current().token_type) {
+                TokenType.IDENTIFIER => {
+                    if (std.mem.eql(u8, self.current().content, "fn")) {
+
+                    } else {
+                        self.unexpected_token();
+                    }
+                },
+                else => self.unexpected_token(),
+            }
+        }
+        return TopLevel.init(self.alloc);
+    }
+
+};
+
+pub const TopLevel = struct {
+    pub fn init(alloc: Allocator) !*TopLevel {
+        const toplevel = try alloc.create(TopLevel);
+        return toplevel;
+    }
 };

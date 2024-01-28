@@ -1,8 +1,8 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
 
+    const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
@@ -12,21 +12,14 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    exe.defineCMacro("_FILE_OFFSET_BITS", "64");
-    exe.defineCMacro("__STDC_CONSTANT_MACROS", null);
-    exe.defineCMacro("__STDC_FORMAT_MACROS", null);
-    exe.defineCMacro("__STDC_LIMIT_MACROS", null);
-
-    // exe.linkSystemLibrary("z");
     switch (target.result.os.tag) {
-        .linux => {
-            exe.linkSystemLibrary("LLVM-17");
-        }, 
+        .linux => exe.linkSystemLibrary("LLVM-17"), 
         .macos => {
             exe.addLibraryPath(.{ .path = "/usr/local/opt/llvm/lib" });
             exe.linkSystemLibrary("LLVM");
         },
         .windows => {
+            // LLVM need to be compiled from source!
             exe.addLibraryPath(.{.path = "C:\\Program Files\\LLVM\\lib"});
             exe.linkSystemLibrary("LLVM-C");
         },

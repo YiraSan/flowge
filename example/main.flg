@@ -1,3 +1,20 @@
+// class Animal {
+//     pub get_age() -> u8;
+// }
+// 
+// class Human: Animal {
+//     priv age: u8 = 0;
+//     
+//     pub get_age() {
+//         return this.age;
+//     }
+// }
+
+// fn main() {
+//     let human = Human();
+//     println("{}", human.get_age());
+// }
+
 fn main() {
-    return 1 + 1;
+    return 1 * 3;
 }

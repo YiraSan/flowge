@@ -662,6 +662,7 @@ pub extern fn LLVMGetCastOpcode(Src: LLVMtype.LLVMValueRef, SrcIsSigned: LLVMtyp
 pub extern fn LLVMBuildICmp(LLVMtype.LLVMBuilderRef, Op: LLVMtype.LLVMIntPredicate, LHS: LLVMtype.LLVMValueRef, RHS: LLVMtype.LLVMValueRef, Name: [*:0]const u8) LLVMtype.LLVMValueRef;
 pub extern fn LLVMBuildFCmp(LLVMtype.LLVMBuilderRef, Op: LLVMtype.LLVMRealPredicate, LHS: LLVMtype.LLVMValueRef, RHS: LLVMtype.LLVMValueRef, Name: [*:0]const u8) LLVMtype.LLVMValueRef;
 pub extern fn LLVMBuildPhi(LLVMtype.LLVMBuilderRef, Ty: LLVMtype.LLVMTypeRef, Name: [*:0]const u8) LLVMtype.LLVMValueRef;
+pub extern fn LLVMBuildCall(LLVMtype.LLVMBuilderRef, Fn: LLVMtype.LLVMValueRef, Args: [*c]LLVMtype.LLVMValueRef, NumArgs: c_uint, Name: [*:0]const u8) LLVMtype.LLVMValueRef;
 pub extern fn LLVMBuildCall2(LLVMtype.LLVMBuilderRef, LLVMtype.LLVMTypeRef, Fn: LLVMtype.LLVMValueRef, Args: [*c]LLVMtype.LLVMValueRef, NumArgs: c_uint, Name: [*:0]const u8) LLVMtype.LLVMValueRef;
 pub extern fn LLVMBuildSelect(LLVMtype.LLVMBuilderRef, If: LLVMtype.LLVMValueRef, Then: LLVMtype.LLVMValueRef, Else: LLVMtype.LLVMValueRef, Name: [*:0]const u8) LLVMtype.LLVMValueRef;
 pub extern fn LLVMBuildVAArg(LLVMtype.LLVMBuilderRef, List: LLVMtype.LLVMValueRef, Ty: LLVMtype.LLVMTypeRef, Name: [*:0]const u8) LLVMtype.LLVMValueRef;
