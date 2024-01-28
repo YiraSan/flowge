@@ -35,6 +35,8 @@ pub fn main() !void {
     const module = try project.Module.init(alloc, "example");
     defer module.deinit();
 
-    _ = try module.parser.parseTopLevel();
+    const expr = try module.build();
+    defer expr.deinit(alloc);
+    print("{}\n", .{expr.body.?.expressions[0].return_expr.expression.?});
 
 }

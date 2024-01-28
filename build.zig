@@ -20,7 +20,7 @@ pub fn build(b: *std.Build) void {
         },
         .windows => {
             // LLVM need to be compiled from source!
-            exe.addLibraryPath(.{.path = "C:\\Program Files\\LLVM\\lib"});
+            exe.addLibraryPath(.{.path = "C:\\Program Files\\LLVM\\bin"});
             exe.linkSystemLibrary("LLVM-C");
         },
         else => unreachable,

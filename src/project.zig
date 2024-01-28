@@ -2,7 +2,8 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 const p = @import("./parser.zig");
-const Parser = p.Parser;
+const Tokens = p.Tokens;
+const Function = p.Function;
 
 const llvm = @import("llvm/llvm.zig");
 const types = llvm.types;
@@ -17,7 +18,7 @@ const core = llvm.core;
 
 pub const Module = struct {
     alloc: Allocator,
-    parser: *Parser,
+    util: *Tokens,
     scope: std.StringHashMap(types.LLVMValueRef),
     llvm_module: types.LLVMModuleRef,
     llvm_builder: types.LLVMBuilderRef,
@@ -26,7 +27,7 @@ pub const Module = struct {
         var module: *Module = try alloc.create(Module);
         const file_path = try std.fs.path.join(alloc, &[_][]const u8{path, "main.flg"});
         defer alloc.free(file_path);
-        module.parser = try Parser.init(alloc, file_path);
+        module.util = try Tokens.init(alloc, file_path);
         module.alloc = alloc;
         const res = try std.fs.cwd().realpathAlloc(alloc, path);
         defer alloc.free(res);
@@ -43,7 +44,11 @@ pub const Module = struct {
         // if execution engine is in use : do not dispose module since its owned by exec engine!
         core.LLVMDisposeModule(self.llvm_module); 
         self.scope.deinit();
-        self.parser.deinit();
+        self.util.deinit();
         self.alloc.destroy(self);
+    }
+
+    pub fn build(self: *Module) !*Function {
+        return try Function.parse(self.util);
     }
 };

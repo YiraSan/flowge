@@ -14,268 +14,59 @@ const llvm = @import("llvm/llvm.zig");
 const types = llvm.types;
 const core = llvm.core;
 
-// Abstract Syntax Tree
+// ParserUtil
 
-pub const NumberExprNode = union(enum) {
-    integer: struct {
-        sign: bool,
-        value: c_ulonglong,
-    },
-
-    pub fn init(alloc: Allocator) !*NumberExprNode {
-        return try alloc.create(NumberExprNode);
-    }
-
-    pub fn deinit(self: *NumberExprNode, alloc: Allocator) void {
-        alloc.destroy(self);
-    }
-
-    pub fn into_expr(self: *NumberExprNode, alloc: Allocator) !*ExprNode {
-        const expr: *ExprNode = try alloc.create(ExprNode);
-        expr.* = .{ .number = self };
-        return expr;
-    }
-
-    pub fn codegen(self: *NumberExprNode, module: *Module) !types.LLVMValueRef {
-        _ = module;
-        return switch (self.*) {
-            .integer => |v| {
-                return core.LLVMConstInt(core.LLVMInt64Type(), v.value, v.sign);
-            },
-        };
-    }
-};
-
-pub const ReferenceExprNode = struct {
-    token_index: usize,
-    identifier: []const u8,
-
-    pub fn init(alloc: Allocator) !*ReferenceExprNode {
-        return try alloc.create(ReferenceExprNode);
-    }
-
-    pub fn deinit(self: *ReferenceExprNode, alloc: Allocator) void {
-        alloc.free(self.identifier);
-        alloc.destroy(self);
-    }
-
-    pub fn into_expr(self: *ReferenceExprNode, alloc: Allocator) !*ExprNode {
-        const expr: *ExprNode = try alloc.create(ExprNode);
-        expr.* = .{ .reference = self };
-        return expr;
-    }
-
-    pub fn codegen(self: *ReferenceExprNode, module: *Module) !types.LLVMValueRef {
-        if (module.scope.contains(self.identifier)) {
-            module.parser.err_token(self.token_index, "undeclared reference", 31);
-            std.os.exit(0); // todo exit(1)
-        }
-        return module.scope.get(self.identifier);
-    }
-};
-
-pub const BinaryExprNode = struct {
-    lhs: *ExprNode,
-    rhs: *ExprNode,
-    operator: Operator,
-
-    pub const Operator = enum {
-        Add, Sub, Mul, Div,
-        Superior, Inferior,
-
-        pub fn parse(parser: *Parser) Operator {
-            const operator = switch (parser.current_char()) {
-                '+' => Operator.Add,
-                '-' => Operator.Sub,
-                '*' => Operator.Mul,
-                '/' => Operator.Div,
-                '>' => Operator.Superior,
-                '<' => Operator.Inferior,
-                else => parser.unexpected_token(),
-            };
-            parser.next_token(); // consume operator token
-            return operator;
-        }
-
-        pub fn get_precedence(self: Operator) u8 {
-            return switch (self) {
-                Operator.Superior => 10,
-                Operator.Inferior => 10,
-                Operator.Add => 20,
-                Operator.Sub => 20,
-                Operator.Mul => 40,
-                Operator.Div => 40,
-            };
-        }
-    };
-
-    pub fn init(alloc: Allocator) !*BinaryExprNode {
-        return try alloc.create(BinaryExprNode);
-    }
-
-    pub fn deinit(self: *BinaryExprNode, alloc: Allocator) void {
-        self.lhs.deinit(alloc);
-        self.rhs.deinit(alloc);
-        alloc.destroy(self);
-    }
-
-    pub fn into_expr(self: *BinaryExprNode, alloc: Allocator) !*ExprNode {
-        const expr: *ExprNode = try alloc.create(ExprNode);
-        expr.* = .{ .binary = self };
-        return expr;
-    }
-
-    pub fn codegen(self: *BinaryExprNode, module: *Module) !types.LLVMValueRef {
-        const left = try self.lhs.codegen(module);
-        const right = try self.rhs.codegen(module);
-
-        return switch (self.operator) {
-            Operator.Add => {
-                return core.LLVMBuildAdd(module.llvm_builder, left, right, "addtmp");
-            },
-            Operator.Sub => {
-                return core.LLVMBuildSub(module.llvm_builder, left, right, "subtmp");
-            },
-            Operator.Mul => {
-                return core.LLVMBuildMul(module.llvm_builder, left, right, "multmp");
-            },
-            Operator.Div => {
-                return core.LLVMBuildSDiv(module.llvm_builder, left, right, "divtmp");
-            },
-            Operator.Superior => {
-                return core.LLVMBuildICmp(module.llvm_builder, types.LLVMIntPredicate.LLVMIntSGT, left, right, "cmptmp");
-            },
-            Operator.Inferior => {
-                return core.LLVMBuildICmp(module.llvm_builder, types.LLVMIntPredicate.LLVMIntSLT, left, right, "cmptmp");
-            }
-        };
-    }
-};
-
-pub const CallExprNode = struct {
-    callee: *ReferenceExprNode,
-    args: std.ArrayList(*ExprNode),
-
-    pub fn init(alloc: Allocator) !*CallExprNode {
-        var expr: *CallExprNode = try alloc.create(CallExprNode);
-        expr.args = std.ArrayList(*ExprNode).init(alloc);
-        return expr;
-    }
-
-    pub fn deinit(self: *CallExprNode, alloc: Allocator) void {
-        self.callee.deinit(alloc);
-        for (self.args.items) |expr| {
-            expr.deinit(alloc);
-        }
-        alloc.destroy(self);
-    }
-
-    pub fn into_expr(self: *CallExprNode, alloc: Allocator) !*ExprNode {
-        const expr: *ExprNode = try alloc.create(ExprNode);
-        expr.* = .{ .call = self };
-        return expr;
-    }
-
-    pub fn codegen(self: *CallExprNode, module: *Module) !types.LLVMValueRef {
-        const function = core.LLVMGetNamedFunction(module.llvm_module, self.callee.identifier);
-        var args = std.ArrayList(types.LLVMValueRef).init(module.alloc);
-        if (core.LLVMCountParams(function) != args.items.len) {
-            module.parser.err_token(self.callee.token_index, try std.fmt.allocPrint(module.alloc, "expected {d} parameters, found {d}", .{args.items.len, core.LLVMCountParams(function)}), 31);
-        }
-        for (self.args.items) |arg| {
-            args.append(try arg.codegen(module));
-        }
-        return core.LLVMBuildCall2(module.llvm_builder, types.LLVMCallConv.LLVMCCallConv, function, args.items.ptr, args.items.len, "calltmp");
-    }
-};
-
-pub const ExprNode = union(enum) {
-    number: *NumberExprNode,
-    reference: *ReferenceExprNode,
-    binary: *BinaryExprNode,
-    call: *CallExprNode,
-
-    pub fn deinit(self: *ExprNode, alloc: Allocator) void {
-        switch (self.*) {
-            .number => |number| {
-                number.deinit(alloc);
-            },
-            .reference => |reference| {
-                reference.deinit(alloc);
-            },
-            .binary => |binary| {
-                binary.deinit(alloc);
-            },
-            .call => |call| {
-                call.deinit(alloc);
-            },
-        }
-        alloc.destroy(self);
-    }
-
-    pub fn codegen(self: *ExprNode, module: *Module) !types.LLVMValueRef {
-        return switch (self.*) {
-            .number => |node| try node.codegen(module),
-            .reference => |node| try node.codegen(module),
-            .binary => |node| try node.codegen(module),
-            .call => |node| try node.codegen(module),
-        };
-    }
-};
-
-pub const PrototypeNode = struct {
-    identifier: []const u8,
-    args: [][]const u8,
-};
-
-pub const FunctionNode = struct {
-    prototype: *PrototypeNode,
-    body: *ExprNode,
-};
-
-// Parser
-
-pub const Parser = struct {
+pub const Tokens = struct {
+    
     alloc: Allocator,
     file_path: []const u8,
-    tokens: std.ArrayList(*Token),
+    tokens: []*Token,
     current_index: usize,
 
-    pub fn init(alloc: Allocator, file_path: []const u8) !*Parser {
-        var parser: *Parser = try alloc.create(Parser);
-        parser.alloc = alloc;
+    pub fn init(alloc: Allocator, file_path: []const u8) !*Tokens {
+        var util = try alloc.create(Tokens);
+        util.alloc = alloc;
+        util.current_index = 0;
         const temp: []u8 = try alloc.alloc(u8, file_path.len);
         std.mem.copyForwards(u8, temp, file_path);
-        parser.file_path = temp;
-        parser.tokens = std.ArrayList(*Token).init(alloc);
-        parser.current_index = 0;
-        var file = try File.init(alloc, file_path);
+        util.file_path = temp;
+
+        // append all tokens to util.tokens
+
+        var list = std.ArrayList(*Token).init(alloc);
+        defer list.deinit();
+
+        const file = try File.init(alloc, file_path);
         defer file.deinit();
+
         var token = try file.next_token();
-        defer token.deinit();
         while (token.token_type != TokenType.EOF) {
-            try parser.tokens.append(token);
+            try list.append(token);
             token = try file.next_token();
         }
-        return parser;
+        try list.append(token); // eof token
+
+        util.tokens = try list.toOwnedSlice();
+
+        return util;
     }
 
-    pub fn deinit(self: *Parser) void {
+    pub fn deinit(self: *Tokens) void {
         self.alloc.free(self.file_path);
-        for (self.tokens.items) |token| {
+        for (self.tokens) |token| {
             token.deinit();
         }
-        self.tokens.deinit();
+        self.alloc.free(self.tokens);
         self.alloc.destroy(self);
     }
-
-    fn err_token(self: *Parser, token_index: usize, message: []const u8, color: u8) void {
-        const tk = self.tokens.items[token_index];
+    
+    pub fn println(self: *Tokens, message: []const u8, token_index: usize, color: u8) void {
+        const tk = self.tokens[token_index];
         print("{s}:{d}:{d} \u{001b}[{d}m{s}\u{001b}[0m\n", .{
             self.file_path, tk.line, tk.begin_column, color, message});
         print("  \u{001b}[30m{d} |\u{001b}[0m", .{tk.line});
         var ltc: usize = 0;
-        for (0.., self.tokens.items) |i, token| {
+        for (0.., self.tokens) |i, token| {
             if (token.line == tk.line) {
                 if (token.begin_column-ltc!=0) {
                     print(" ", .{});
@@ -297,173 +88,710 @@ pub const Parser = struct {
         print("\n\n", .{});
     }
 
-    fn logerr(self: *Parser, message: []const u8, color: u8) noreturn {
-        self.err_token(self.current_index, message, color);
-        std.os.exit(0); // todo: turn back to 1
+    pub fn panic(self: *Tokens, message: []const u8, token_index: usize) noreturn {
+        const panic_err = 31;
+        self.println(message, token_index, panic_err);
+        std.os.exit(0); // todo: replace by `std.os.exit(1)` (0 to avoid zig long stacktrace in debug)
     }
 
-    fn unexpected_token(self: *Parser) noreturn {
-        self.logerr("unexpected token", 31);
+    pub fn warn(self: *Tokens, message: []const u8, token_index: usize) void {
+        const warn_color = 33;
+        self.println(message, token_index, warn_color);
     }
 
-    // real parser code here!!
-
-    inline fn current(self: *Parser) *Token {
-        return self.tokens.items[self.current_index];
+    pub inline fn unexpected_token(self: *Tokens) noreturn {
+        self.panic("unexpected token", self.current_index);
     }
 
-    inline fn current_char(self: *Parser) u8 {
+    // parser utils
+
+    pub inline fn current(self: *Tokens) *Token {
+        return self.tokens[self.current_index];
+    }
+
+    pub inline fn current_char(self: *Tokens) u8 {
         return self.current().content[0];
     }
 
-    inline fn next_token(self: *Parser) void {
-        self.current_index += 1;
-        if (self.current_index >= self.tokens.items.len) {
-            print("{s} \u{001b}[{d}m{s}\u{001b}[0m\n\n", .{
-            self.file_path, 31, "unexpected end of file"});
-            std.os.exit(0); // todo: exit(1)
+    /// expecting something next
+    pub inline fn next(self: *Tokens) void {
+        self.consume();
+        if (self.current().token_type == TokenType.EOF) {
+            self.panic("unexpected end of file", self.current_index - 1);
         }
     }
 
-    pub fn parseNumberExpr(self: *Parser) !*ExprNode {
-        const expr = try NumberExprNode.init(self.alloc);
-        expr.* = .{ .integer = .{ 
-            .value = try std.fmt.parseInt(c_ulonglong, self.current().content, 0),
-            .sign = true,
-        } };
-        self.next_token(); // consume number
-        return expr.into_expr(self.alloc);
-    }
-
-    pub fn parseParenthesisExpr(self: *Parser) !*ExprNode {
-        self.next_token(); // consume '('
-        const expr = try self.parseExpr();
-        if (self.current_char() != ')') 
-            self.unexpected_token();
-        self.next_token(); // consume ')'
-        return expr;
-    }
-
-    pub fn parseReferenceExpr(self: *Parser) anyerror!*ExprNode {
-        const ref = try ReferenceExprNode.init(self.alloc);
-        ref.token_index = self.current_index;
-        ref.identifier = self.current().content;
-        self.next_token(); // consume identifier
-        if (self.current_char() != '(')
-            return ref.into_expr(self.alloc);
-        const call = try CallExprNode.init(self.alloc);
-        call.callee = ref;
-        self.next_token(); // consume '('
-        if (self.current_char() != ')') {
-            while (true) {
-                const expr = try self.parseExpr();
-                try call.args.append(expr);
-
-                if (self.current_char() == ')')
-                    break;
-
-                if (self.current_char() != ',')
-                    return self.logerr("expected ')' or ','", 31);
-                
-                self.next_token();
-            }
+    /// consuming something past
+    pub inline fn consume(self: *Tokens) void {
+        if (self.current().token_type != TokenType.EOF) {
+            self.current_index += 1;
         }
-        self.next_token(); // consume ')'
-        return call.into_expr(self.alloc);
-    }
-
-    pub fn parsePrimaryExpr(self: *Parser) !*ExprNode {
-        return switch (self.current().token_type) {
-            .IDENTIFIER => try self.parseReferenceExpr(),
-            .NUMBER => try self.parseNumberExpr(),
-            .UNIQUE => switch (self.current_char()) {
-                '(' => try self.parseParenthesisExpr(),
-                '-' => {
-                    self.next_token(); // consume '-'
-                    return switch (self.current().token_type) {
-                        .NUMBER => {
-                            const expr = try self.parseNumberExpr();
-                            expr.number.integer.sign = !expr.number.integer.sign;
-                            return expr;
-                        },
-                        else => self.unexpected_token(),
-                    };
-                },
-                else => self.unexpected_token(),
-            },
-            else => self.unexpected_token(),
-        };
-    }
-
-    pub fn is_op(self: *Parser) u8 {
-        return switch (self.current().token_type) {
-            .OPERATOR => {
-
-            },
-            else => 0,
-        };
-    }
-
-    pub fn parseBinOPRHS(self: *Parser, expr_prec: u8, _lhs: *ExprNode) !*ExprNode {
-        var lhs = _lhs;
-        while (true) {
-            if (self.current().token_type != .OPERATOR) {
-                return lhs;
-            }
-
-            const op1 = BinaryExprNode.Operator.parse(self);
-
-            if (op1.get_precedence() < expr_prec) {
-                return lhs;
-            }
-            
-            var rhs = try self.parsePrimaryExpr();
-
-            if (self.current().token_type == .OPERATOR) {
-                const op2 = BinaryExprNode.Operator.parse(self);
-                if (op1.get_precedence() < op2.get_precedence()) {
-                    rhs = try self.parseBinOPRHS(op1.get_precedence() + 1, rhs);
-                }
-            }
-
-            var temp = try BinaryExprNode.init(self.alloc);
-            temp.lhs = lhs;
-            temp.operator = op1;
-            temp.rhs = rhs;
-
-            lhs = try temp.into_expr(self.alloc);
-        }
-    }
-
-    pub fn parseExpr(self: *Parser) anyerror!*ExprNode {
-        return self.parseBinOPRHS(0, try self.parsePrimaryExpr());
-    }
-
-    pub fn parsePrototype(self: *Parser) !*PrototypeNode {
-         
-    }
-
-    pub fn parseTopLevel(self: *Parser) anyerror!*TopLevel {
-        while (self.current_index < self.tokens.items.len) {
-            switch (self.current().token_type) {
-                TokenType.IDENTIFIER => {
-                    if (std.mem.eql(u8, self.current().content, "fn")) {
-
-                    } else {
-                        self.unexpected_token();
-                    }
-                },
-                else => self.unexpected_token(),
-            }
-        }
-        return TopLevel.init(self.alloc);
     }
 
 };
 
-pub const TopLevel = struct {
-    pub fn init(alloc: Allocator) !*TopLevel {
-        const toplevel = try alloc.create(TopLevel);
-        return toplevel;
+pub const PrimitiveType = enum {
+    VOID,
+    BOOL, // correspond to u1
+    // NUMBER
+    I8, I16, I32, I64, I128, // SIGNED
+    U8, U16, U32, U64, U128, // UNSIGNED
+    F16, F32, F64, F128, // REAL
+
+    pub fn codegen(self: *PrimitiveType, module: *Module) types.LLVMTypeRef {
+        _ = module;
+        return switch (self.*) {
+            .VOID => core.LLVMVoidType(),
+            .BOOL => core.LLVMInt1Type(),
+            .U8 => core.LLVMInt8Type(),
+            .I8 => core.LLVMInt8Type(),
+            .U16 => core.LLVMInt16Type(),
+            .I16 => core.LLVMInt16Type(),
+            .U32 => core.LLVMInt32Type(),
+            .I32 => core.LLVMInt32Type(),
+            .U64 => core.LLVMInt64Type(),
+            .I64 => core.LLVMInt64Type(),
+            .U128 => core.LLVMInt128Type(),
+            .I128 => core.LLVMInt128Type(),
+            .F16 => core.LLVMHalfType(),
+            .F32 => core.LLVMFloatType(),
+            .F64 => core.LLVMDoubleType(),
+            .F128 => core.LLVMFP128Type(),
+        };
     }
+};
+
+// Abstract Syntax Tree
+
+pub const Type = struct {
+
+    token_index: usize,
+    content: union(enum) {
+        primitive: PrimitiveType,
+        reference: *Reference,
+    },
+
+    pub fn parse(util: *Tokens) !*Type {
+        const typ = try util.alloc.create(Type);
+        typ.token_index = util.current_index;
+        if (std.mem.eql(u8, util.current().content, "void")) {
+            typ.content = .{ .primitive = PrimitiveType.VOID };
+        } else if (std.mem.eql(u8, util.current().content, "bool")) {
+            typ.content = .{ .primitive = PrimitiveType.BOOL };
+        } else if (std.mem.eql(u8, util.current().content, "u8")) {
+            typ.content = .{ .primitive = PrimitiveType.U8 };
+        } else if (std.mem.eql(u8, util.current().content, "u16")) {
+            typ.content = .{ .primitive = PrimitiveType.U16 };
+        } else if (std.mem.eql(u8, util.current().content, "u32")) {
+            typ.content = .{ .primitive = PrimitiveType.U32 };
+        } else if (std.mem.eql(u8, util.current().content, "u64")) {
+            typ.content = .{ .primitive = PrimitiveType.U64 };
+        } else if (std.mem.eql(u8, util.current().content, "u128")) {
+            typ.content = .{ .primitive = PrimitiveType.U128 };
+        } else if (std.mem.eql(u8, util.current().content, "i8")) {
+            typ.content = .{ .primitive = PrimitiveType.I8 };
+        } else if (std.mem.eql(u8, util.current().content, "i16")) {
+            typ.content = .{ .primitive = PrimitiveType.I16 };
+        } else if (std.mem.eql(u8, util.current().content, "i32")) {
+            typ.content = .{ .primitive = PrimitiveType.I32 };
+        } else if (std.mem.eql(u8, util.current().content, "i64")) {
+            typ.content = .{ .primitive = PrimitiveType.I64 };
+        } else if (std.mem.eql(u8, util.current().content, "i128")) {
+            typ.content = .{ .primitive = PrimitiveType.I128 };
+        } else if (std.mem.eql(u8, util.current().content, "f16")) {
+            typ.content = .{ .primitive = PrimitiveType.F16 };
+        }else if (std.mem.eql(u8, util.current().content, "f32")) {
+            typ.content = .{ .primitive = PrimitiveType.F32 };
+        } else if (std.mem.eql(u8, util.current().content, "f64")) {
+            typ.content = .{ .primitive = PrimitiveType.F64 };
+        } else if (std.mem.eql(u8, util.current().content, "f128")) {
+            typ.content = .{ .primitive = PrimitiveType.F128 };
+        } else {
+            const expr = try Reference.parse(util);
+            defer util.alloc.destroy(expr);
+            typ.content = .{ .reference = expr.reference };
+            return typ;
+        }
+        util.consume(); // eat primitive type
+        return typ;
+    }
+
+    pub fn deinit(self: *Type, alloc: Allocator) void {
+        switch (self.content) {
+            .reference => |ref| {
+                ref.deinit(alloc);
+            },
+            else => {},
+        }
+        alloc.destroy(self);
+    }
+
+    pub fn codegen(self: *Type, module: *Module) types.LLVMTypeRef {
+        return switch (self.content) {
+            .reference => |_| { std.debug.panic("unsupported type", .{}); },
+            .primitive => |primitive| {
+                return primitive.codegen(module);
+            },
+        };
+    }
+
+};
+
+pub const Boolean = struct {
+
+    token_index: usize,
+    value: enum { True, False },
+
+    pub fn parse(util: *Tokens) !*Boolean {
+        const boolean = try util.alloc.create(Boolean);
+        boolean.token_index = util.current_index;
+        if (std.mem.eql(u8, util.current().content, "true")) {
+            boolean.value = .True;
+        } else if (std.mem.eql(u8, util.current().content, "false")) {
+            boolean.value = .False;
+        } else {
+            util.panic("expected 'true' or 'false'", util.current_index);
+        }
+        util.consume();
+        return boolean;
+    }
+
+    pub fn into_expr(self: *Boolean, alloc: Allocator) !*Expression {
+        const expr = try alloc.create(Expression);
+        expr.* = .{ .boolean = self };
+        return expr;
+    }
+
+    pub fn deinit(self: *Boolean, alloc: Allocator) void {
+        alloc.destroy(self);
+    }
+
+    pub fn codegen(self: *Boolean, module: *Module) types.LLVMValueRef {
+        _ = module;
+        return switch (self.value) {
+            .True => core.LLVMConstInt(core.LLVMInt1Type(), 1, false),
+            .False => core.LLVMConstInt(core.LLVMInt1Type(), 0, false),
+        };
+    }
+
+};
+
+pub const Number = struct {
+
+    token_index: usize,
+    type: ?PrimitiveType,
+    numeral: union(enum) {
+        integer: struct {
+            value: c_ulonglong,
+            sign: bool,
+        },
+        real: f64,
+    },
+
+    pub fn parse(util: *Tokens) !*Number {
+        const number = try util.alloc.create(Number);
+        number.token_index = util.current_index;
+        number.type = null;
+        if (std.mem.indexOf(u8, util.current().content, ".") == null) { // integer
+            number.numeral = .{ .integer = .{ 
+                .value = try std.fmt.parseInt(c_ulonglong, util.current().content, 0),
+                .sign = true,
+            } };
+        } else { // real
+            number.numeral = .{ 
+                .real = try std.fmt.parseFloat(f64, util.current().content)
+            };
+        }
+        util.consume();
+        return number;
+    }
+
+    pub fn into_expr(self: *Number, alloc: Allocator) !*Expression {
+        const expr = try alloc.create(Expression);
+        expr.* = .{ .number = self };
+        return expr;
+    }
+
+    pub fn deinit(self: *Number, alloc: Allocator) void {
+        alloc.destroy(self);
+    }
+
+    pub fn codegen(self: *Number, module: *Module) types.LLVMValueRef {
+        return switch (self.numeral) {
+            .integer => |integer| {
+                if (self.type == null) {
+                    return core.LLVMConstInt(core.LLVMInt32Type(), integer.value, integer.sign);
+                
+                } else {
+                    return core.LLVMConstInt(self.type.?.codegen(module), integer.value, integer.sign);
+                }
+            },
+            .real => |real| {
+                if (self.type == null) {
+                    return core.LLVMConstReal(core.LLVMDoubleType(), real);
+                } else {
+                    return core.LLVMConstReal(self.type.?.codegen(module), real);
+                }
+            },
+        };
+    }
+
+};
+
+pub const BinaryTree = struct {
+
+    left: *Expression,
+    right: *Expression,
+    token_index: usize, // refer to operator
+    operator: Operator,
+
+    pub fn parse(util: *Tokens, last_precedence: u8, left: *Expression) anyerror!*Expression {
+        var lhs = left;
+        while (true) {
+            if (util.current().token_type == TokenType.OPERATOR) {
+                const op_index = util.current_index;
+                var op = BinaryTree.Operator.parse(util);
+                if (op.precedence() < last_precedence) {
+                    util.current_index = op_index;
+                    return lhs;
+                } else {
+                    var right = try Expression.parsePrimary(util);
+                    if (util.current().token_type == TokenType.OPERATOR) {
+                        const op2_index = util.current_index;
+                        var op2 = BinaryTree.Operator.parse(util);
+                        if (op.precedence() < op2.precedence()) {
+                            util.current_index = op2_index;
+                            right = try BinaryTree.parse(util, op.precedence() + 1, right);
+                        }
+                    }
+                    var binary_tree = try util.alloc.create(BinaryTree);
+                    binary_tree.left = lhs;
+                    binary_tree.right = right;
+                    binary_tree.operator = op;
+                    binary_tree.token_index = op_index;
+                    lhs = try binary_tree.into_expr(util.alloc);
+                }
+            } else {
+                return lhs;
+            }
+        }
+    }
+
+    pub fn into_expr(self: *BinaryTree, alloc: Allocator) !*Expression {
+        const expr = try alloc.create(Expression);
+        expr.* = .{ .binary_tree = self };
+        return expr;
+    }
+
+    pub fn deinit(self: *BinaryTree, alloc: Allocator) void {
+        self.left.deinit(alloc);
+        self.right.deinit(alloc);
+        alloc.destroy(self);
+    }
+
+    pub const Operator = enum {
+        Add, Sub, Mul, Div,
+        // Define,
+        // Equal, GreaterThan, LessThan, GreaterOrEqual, LessOrEqual,
+
+        pub fn parse(util: *Tokens) Operator {
+            var op: Operator = undefined;
+            if (std.mem.eql(u8, util.current().content, "+")) {
+                op = Operator.Add;
+            } else if (std.mem.eql(u8, util.current().content, "-")) {
+                op = Operator.Sub;
+            } else if (std.mem.eql(u8, util.current().content, "*")) {
+                op = Operator.Mul;
+            } else if (std.mem.eql(u8, util.current().content, "/")) {
+                op = Operator.Div;
+            } else {
+                util.unexpected_token();
+            }
+            util.consume();
+            return op;
+        }
+
+        pub fn precedence(self: Operator) u8 {
+            return switch (self) {
+                // Operator.Define => 5,
+                // Operator.Equal => 10,
+                // Operator.GreaterThan => 20,
+                // Operator.GreaterOrEqual => 20,
+                // Operator.LessThan => 20,
+                // Operator.LessOrEqual => 20,
+                Operator.Add => 30,
+                Operator.Sub => 30,
+                Operator.Mul => 50,
+                Operator.Div => 50,
+            };
+        }
+    };
+
+};
+
+pub const Call = struct {
+
+    token_index: usize,
+    reference: *Reference,
+    expressions: []*Expression,
+
+    pub fn into_expr(self: *Call, alloc: Allocator) !*Expression {
+        const expr = try alloc.create(Expression);
+        expr.* = .{ .call = self };
+        return expr;
+    }
+
+    pub fn deinit(self: *Call, alloc: Allocator) void {
+        for (self.expressions) |node| {
+            node.deinit(alloc);
+        }
+        alloc.free(self.expressions);
+        self.reference.deinit(alloc);
+        alloc.destroy(self);
+    }
+
+    pub fn codegen(self: *Call, module: *Module) types.LLVMValueRef {
+        const name = try module.alloc.dupeZ(u8, self.reference.identifier);
+        defer module.alloc.free(name);
+        const func = core.LLVMGetNamedFunction(module.llvm_module, name);
+
+        if (core.LLVMCountParams(func) != self.expressions.len) {
+            module.util.panic(std.fmt.allocPrint(module.alloc, "expected {d} params found {d}", .{
+                core.LLVMCountParams(func), self.expressions.len
+            }), self.token_index);
+        }
+
+        
+    }
+
+};
+
+pub const Reference = struct {
+
+    identifier: []const u8,
+    token_index: usize,
+
+    pub fn parse(util: *Tokens) !*Expression {
+        const reference = try util.alloc.create(Reference);
+        reference.token_index = util.current_index;
+        if (std.mem.eql(u8, util.current().content, "void")
+         or std.mem.eql(u8, util.current().content, "bool")
+         or std.mem.eql(u8, util.current().content, "u8")
+         or std.mem.eql(u8, util.current().content, "u16")
+         or std.mem.eql(u8, util.current().content, "u32")
+         or std.mem.eql(u8, util.current().content, "u64")
+         or std.mem.eql(u8, util.current().content, "u128")
+         or std.mem.eql(u8, util.current().content, "i8")
+         or std.mem.eql(u8, util.current().content, "i16")
+         or std.mem.eql(u8, util.current().content, "i32")
+         or std.mem.eql(u8, util.current().content, "i64")
+         or std.mem.eql(u8, util.current().content, "i128")
+         or std.mem.eql(u8, util.current().content, "f16")
+         or std.mem.eql(u8, util.current().content, "f32")
+         or std.mem.eql(u8, util.current().content, "f64")
+         or std.mem.eql(u8, util.current().content, "f128")
+         or std.mem.eql(u8, util.current().content, "null")
+         or std.mem.eql(u8, util.current().content, "fn")
+         or std.mem.eql(u8, util.current().content, "extern")
+         or std.mem.eql(u8, util.current().content, "if")
+         or std.mem.eql(u8, util.current().content, "else")
+         or std.mem.eql(u8, util.current().content, "var")
+         or std.mem.eql(u8, util.current().content, "const")
+         or std.mem.eql(u8, util.current().content, "true")
+         or std.mem.eql(u8, util.current().content, "false")
+         or std.mem.eql(u8, util.current().content, "return")) {
+            util.unexpected_token();
+        } 
+        const temp = try util.alloc.alloc(u8, util.current().content.len);
+        std.mem.copyForwards(u8, temp, util.current().content);
+        reference.identifier = temp;
+        util.consume(); // eat name
+        if (util.current_char() != '(') {
+            return try reference.into_expr(util.alloc);
+        } else {
+            const call = try util.alloc.create(Call);
+            call.token_index = util.current_index;
+            call.reference = reference;
+            util.next(); // eat '('
+            var list = std.ArrayList(*Expression).init(util.alloc);
+            defer list.deinit();
+            if (util.current_char() != ')') {
+                while (true) {
+                    const expr = try Expression.parseBinary(util);
+                    try list.append(expr);
+                    if (util.current_char() == ')') {
+                        break;
+                    } else if (util.current_char() != ',') {
+                        util.next(); // eat ','
+                    } else {
+                        util.panic("expected ',' or ')'", util.current_index);
+                    }
+                }
+            }
+            util.consume(); // eat ')'
+            call.expressions = try list.toOwnedSlice();
+            return try call.into_expr(util.alloc);
+        }
+    }
+
+    pub fn into_expr(self: *Reference, alloc: Allocator) !*Expression {
+        const expr = try alloc.create(Expression);
+        expr.* = .{ .reference = self };
+        return expr;
+    }
+
+    pub fn deinit(self: *Reference, alloc: Allocator) void {
+        alloc.free(self.identifier);
+        alloc.destroy(self);
+    }
+
+};
+
+pub const Expression = union(enum) {
+
+    number: *Number,
+    boolean: *Boolean,
+    binary_tree: *BinaryTree,
+    reference: *Reference,
+    body: *Body,
+    return_expr: struct {
+        token_index: usize,
+        expression: ?*Expression,
+    },
+    call: *Call,
+
+    fn parsePrimary(util: *Tokens) anyerror!*Expression {
+        return switch (util.current().token_type) {
+            .IDENTIFIER => {
+                if (std.mem.eql(u8, util.current().content, "true")
+                or std.mem.eql(u8, util.current().content, "false")) {
+                    return (try Boolean.parse(util)).into_expr(util.alloc);
+                } else {
+                    return try Reference.parse(util);
+                }
+            },
+            .NUMBER => (try Number.parse(util)).into_expr(util.alloc),
+            .UNIQUE => switch (util.current_char()) {
+                '(' => try parseParenthesis(util),
+                '{' => (try Body.parse(util)).into_expr(util.alloc),
+                '-' => {
+                    util.next(); // eat '-'
+                    return switch (util.current().token_type) {
+                        .NUMBER => {
+                            const expr = try Number.parse(util);
+                            expr.numeral.integer.sign = !expr.numeral.integer.sign;
+                            return expr.into_expr(util.alloc);
+                        },
+                        else => util.unexpected_token(),
+                    };
+                },
+                else => util.unexpected_token(),
+            },
+            else => util.unexpected_token(),
+        };
+    }
+
+    fn parseParenthesis(util: *Tokens) anyerror!*Expression {
+        util.next(); // eat '('
+        const expresion = try Expression.parseBinary(util);
+        if (util.current_char() != ')') {
+            util.unexpected_token();
+        }
+        util.consume(); // eat ')'
+        return expresion;
+    }
+
+    pub fn parseBinary(util: *Tokens) anyerror!*Expression {
+        return BinaryTree.parse(util, 0, try Expression.parsePrimary(util));
+    }
+
+    pub fn deinit(self: *Expression, alloc: Allocator) void {
+        switch (self.*) {
+            .number => |node| node.deinit(alloc),
+            .boolean => |node| node.deinit(alloc),
+            .binary_tree => |node| node.deinit(alloc),
+            .reference => |node| node.deinit(alloc),
+            .body => |node| node.deinit(alloc),
+            .return_expr => |node| {
+                if (node.expression != null) {
+                    node.expression.?.deinit(alloc);
+                }
+            },
+            .call => |node| node.deinit(alloc),
+        }
+        alloc.destroy(self);
+    }
+
+};
+
+pub const Body = struct {
+
+    token_index: usize,
+    expressions: []*Expression,
+
+    pub fn parse(util: *Tokens) !*Body {
+        const body = try util.alloc.create(Body);
+        body.token_index = util.current_index;
+        util.next(); // eat '{'
+        var list = std.ArrayList(*Expression).init(util.alloc);
+        defer list.deinit();
+        while (util.current_char() != '}') {
+            if (util.current().token_type == TokenType.IDENTIFIER 
+            and std.mem.eql(u8, util.current().content, "return")) {
+                const ret = try util.alloc.create(Expression);
+                util.next(); // eat "return"
+                if (util.current_char() == ';') {
+                    ret.* = .{ .return_expr = .{ 
+                        .token_index = util.current_index - 1, 
+                        .expression = null,
+                    } };
+                } else {
+                    ret.* = .{ .return_expr = .{ 
+                        .token_index = util.current_index - 1, 
+                        .expression = try Expression.parseBinary(util),
+                    } };
+                }
+                try list.append(ret);
+            } else {
+                try list.append(try Expression.parseBinary(util));
+            }
+            if (util.current_char() == ';') {
+                util.next();
+            } else {
+                util.unexpected_token();
+            }
+        }
+        util.consume(); // eat '}'
+        body.expressions = try list.toOwnedSlice();
+        return body;
+    }
+
+    pub fn into_expr(self: *Body, alloc: Allocator) !*Expression {
+        const expr = try alloc.create(Expression);
+        expr.* = .{ .body = self };
+        return expr;
+    }
+
+    pub fn deinit(self: *Body, alloc: Allocator) void {
+        for (self.expressions) |expr| {
+            expr.deinit(alloc);
+        }
+        alloc.free(self.expressions);
+        alloc.destroy(self);
+    }
+
+};
+
+pub const Parameter = struct {
+
+    name: []const u8,
+    type: *Type,
+
+    pub fn parse(util: *Tokens) !*Parameter {
+        const parameter = try util.alloc.create(Parameter);
+        const temp = try util.alloc.alloc(u8, util.current().content.len);
+        std.mem.copyForwards(u8, temp, util.current().content);
+        parameter.name = temp;
+        util.next(); // eat name
+        if (util.current_char() != ':') {
+            util.panic(try std.fmt.allocPrint(util.alloc, "expected ':' found '{s}'", .{util.current().content}), util.current_index);
+        }
+        util.next(); // eat ':'
+        const typ = try Type.parse(util);
+        parameter.type = typ;
+        return parameter;
+    }
+
+    pub fn deinit(self: *Parameter, alloc: Allocator) void {
+        alloc.free(self.name);
+        self.type.deinit(alloc);
+        alloc.destroy(self);
+    }
+
+};
+
+pub const Prototype = struct {
+
+    name: []const u8,
+    parameters: []*Parameter,
+    return_type: *Type,
+
+    pub fn parse(util: *Tokens) !*Prototype {
+        const prototype = try util.alloc.create(Prototype);
+        util.next(); // eat "fn"
+        if (util.current().token_type == TokenType.IDENTIFIER) {
+            const id_index = util.current_index;
+            const temp = try util.alloc.alloc(u8, util.current().content.len);
+            std.mem.copyForwards(u8, temp, util.current().content);
+            prototype.name = temp;
+            util.next(); // eat identifier
+            if (util.current_char() == '(') {
+                var list = std.ArrayList(*Parameter).init(util.alloc);
+                defer list.deinit();
+                util.next(); // eat '('
+                while (util.current_char() != ')') {
+                    try list.append(try Parameter.parse(util));
+                    if (util.current_char() == ',') {
+                        util.next(); // eat ','
+                    } else if (util.current_char() != ')') {
+                        util.panic(try std.fmt.allocPrint(util.alloc, "expected ',' or ')' found '{s}'", .{util.current().content}), util.current_index);
+                    }
+                }
+                util.consume(); // eat ')'
+                prototype.parameters = try list.toOwnedSlice();
+                if (util.current_char() == ':') {
+                    util.next(); // eat ':'
+                    prototype.return_type = try Type.parse(util);
+                } else {
+                    const typ = try util.alloc.create(Type);
+                    typ.content = .{ .primitive = PrimitiveType.VOID };
+                    typ.token_index = id_index;
+                    prototype.return_type = typ;
+                }
+            } else {
+                util.panic(try std.fmt.allocPrint(util.alloc, "expected '(' found '{s}'", .{util.current().content}), util.current_index);
+            }
+        }
+        return prototype;
+    }
+
+    pub fn deinit(self: *Prototype, alloc: Allocator) void {
+        alloc.free(self.name);
+        for (self.parameters) |parameter| {
+            parameter.deinit(alloc);
+        }
+        alloc.free(self.parameters);
+        self.return_type.deinit(alloc);
+        alloc.destroy(self);
+    }
+
+};
+
+pub const Function = struct {
+
+    prototype: *Prototype,
+    body: ?*Body,
+
+    pub fn parse(util: *Tokens) !*Function {
+        const function = try util.alloc.create(Function);
+        function.prototype = try Prototype.parse(util);
+        if (util.current_char() == '{') {
+            function.body = try Body.parse(util);
+        } else if (util.current_char() == ';') {
+            function.body = null;
+            util.consume();
+        } else {
+            util.unexpected_token();
+        }
+        return function;
+    }
+
+    pub fn deinit(self: *Function, alloc: Allocator) void {
+        self.prototype.deinit(alloc);
+        if (self.body != null) {
+            self.body.?.deinit(alloc);
+        }
+        alloc.destroy(self);
+    }
+
 };
