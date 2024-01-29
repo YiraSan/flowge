@@ -351,3 +351,114 @@ pub const File = struct {
         return token;
     }
 };
+
+pub const Tokens = struct {
+    alloc: Allocator,
+    file_path: []const u8,
+    tokens: []*Token,
+    current_index: usize,
+
+    pub fn init(alloc: Allocator, file_path: []const u8) !*Tokens {
+        var util = try alloc.create(Tokens);
+        util.alloc = alloc;
+        util.current_index = 0;
+        const temp: []u8 = try alloc.alloc(u8, file_path.len);
+        std.mem.copyForwards(u8, temp, file_path);
+        util.file_path = temp;
+
+        // append all tokens to util.tokens
+
+        var list = std.ArrayList(*Token).init(alloc);
+        defer list.deinit();
+
+        const file = try File.init(alloc, file_path);
+        defer file.deinit();
+
+        var token = try file.next_token();
+        while (token.token_type != TokenType.EOF) {
+            try list.append(token);
+            token = try file.next_token();
+        }
+        try list.append(token); // eof token
+
+        util.tokens = try list.toOwnedSlice();
+
+        return util;
+    }
+
+    pub fn deinit(self: *Tokens) void {
+        self.alloc.free(self.file_path);
+        for (self.tokens) |token| {
+            token.deinit();
+        }
+        self.alloc.free(self.tokens);
+        self.alloc.destroy(self);
+    }
+
+    pub fn println(self: *Tokens, message: []const u8, token_index: usize, color: u8) void {
+        const tk = self.tokens[token_index];
+        print("{s}:{d}:{d} \u{001b}[{d}m{s}\u{001b}[0m\n", .{ self.file_path, tk.line, tk.begin_column, color, message });
+        print("  \u{001b}[30m{d} |\u{001b}[0m", .{tk.line});
+        var ltc: usize = 0;
+        for (0.., self.tokens) |i, token| {
+            if (token.line == tk.line) {
+                if (token.begin_column - ltc != 0) {
+                    print(" ", .{});
+                }
+                ltc = token.end_column;
+                if (i == token_index) {
+                    print("\u{001b}[4;{d}m", .{color});
+                }
+                switch (token.token_type) {
+                    .I_CHAR => print("'{s}'", .{token.content}),
+                    .I_STR => print("\"{s}\"", .{token.content}),
+                    else => print("{s}", .{token.content}),
+                }
+                if (i == token_index) {
+                    print("\u{001b}[0m", .{});
+                }
+            }
+        }
+        print("\n\n", .{});
+    }
+
+    pub fn panic(self: *Tokens, message: []const u8, token_index: usize) noreturn {
+        const panic_err = 31;
+        self.println(message, token_index, panic_err);
+        std.os.exit(0); // todo: replace by `std.os.exit(1)` (0 to avoid zig long stacktrace in debug)
+    }
+
+    pub fn warn(self: *Tokens, message: []const u8, token_index: usize) void {
+        const warn_color = 33;
+        self.println(message, token_index, warn_color);
+    }
+
+    pub inline fn unexpected_token(self: *Tokens) noreturn {
+        self.panic("unexpected token", self.current_index);
+    }
+
+    // parser utils
+
+    pub inline fn current(self: *Tokens) *Token {
+        return self.tokens[self.current_index];
+    }
+
+    pub inline fn current_char(self: *Tokens) u8 {
+        return self.current().content[0];
+    }
+
+    /// consuming while expecting something next
+    pub inline fn next(self: *Tokens) void {
+        self.consume();
+        if (self.current().token_type == TokenType.EOF) {
+            self.panic("unexpected end of file", self.current_index - 1);
+        }
+    }
+
+    /// consuming something past
+    pub inline fn consume(self: *Tokens) void {
+        if (self.current().token_type != TokenType.EOF) {
+            self.current_index += 1;
+        }
+    }
+};

@@ -36,6 +36,8 @@ pub fn main() !void {
     const package = try Package.init(alloc, "example");
     defer package.deinit();
     
-    package.build();
+    try package.build();
+
+    print("{s}\n", .{std.mem.span(core.LLVMPrintModuleToString(package.llvm_module))});
     
 }
