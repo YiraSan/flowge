@@ -3,8 +3,6 @@ const builtin = @import("builtin");
 const fs = std.fs;
 const print = std.debug.print;
 
-const project = @import("./project.zig");
-
 pub extern "kernel32" fn SetConsoleOutputCP(
     wCodePageID: u32,
 ) callconv(std.os.windows.WINAPI) bool;
@@ -12,6 +10,9 @@ pub extern "kernel32" fn SetConsoleOutputCP(
 const llvm = @import("llvm/llvm.zig");
 const core = llvm.core;
 const target = llvm.target;
+
+const p = @import("package.zig");
+const Package = p.Package;
 
 pub fn main() !void {
 
@@ -32,11 +33,9 @@ pub fn main() !void {
 
     const alloc = gpa.allocator();
 
-    const module = try project.Module.init(alloc, "example");
-    defer module.deinit();
-
-    const expr = try module.build();
-    defer expr.deinit(alloc);
-    print("{}\n", .{expr.body.?.expressions[0].return_expr.expression.?});
-
+    const package = try Package.init(alloc, "example");
+    defer package.deinit();
+    
+    package.build();
+    
 }

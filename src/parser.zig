@@ -17,7 +17,6 @@ const core = llvm.core;
 // ParserUtil
 
 pub const Tokens = struct {
-    
     alloc: Allocator,
     file_path: []const u8,
     tokens: []*Token,
@@ -59,16 +58,15 @@ pub const Tokens = struct {
         self.alloc.free(self.tokens);
         self.alloc.destroy(self);
     }
-    
+
     pub fn println(self: *Tokens, message: []const u8, token_index: usize, color: u8) void {
         const tk = self.tokens[token_index];
-        print("{s}:{d}:{d} \u{001b}[{d}m{s}\u{001b}[0m\n", .{
-            self.file_path, tk.line, tk.begin_column, color, message});
+        print("{s}:{d}:{d} \u{001b}[{d}m{s}\u{001b}[0m\n", .{ self.file_path, tk.line, tk.begin_column, color, message });
         print("  \u{001b}[30m{d} |\u{001b}[0m", .{tk.line});
         var ltc: usize = 0;
         for (0.., self.tokens) |i, token| {
             if (token.line == tk.line) {
-                if (token.begin_column-ltc!=0) {
+                if (token.begin_column - ltc != 0) {
                     print(" ", .{});
                 }
                 ltc = token.end_column;
@@ -113,7 +111,7 @@ pub const Tokens = struct {
         return self.current().content[0];
     }
 
-    /// expecting something next
+    /// consuming while expecting something next
     pub inline fn next(self: *Tokens) void {
         self.consume();
         if (self.current().token_type == TokenType.EOF) {
@@ -127,16 +125,26 @@ pub const Tokens = struct {
             self.current_index += 1;
         }
     }
-
 };
 
 pub const PrimitiveType = enum {
     VOID,
     BOOL, // correspond to u1
     // NUMBER
-    I8, I16, I32, I64, I128, // SIGNED
-    U8, U16, U32, U64, U128, // UNSIGNED
-    F16, F32, F64, F128, // REAL
+    I8,
+    I16,
+    I32,
+    I64,
+    I128, // SIGNED
+    U8,
+    U16,
+    U32,
+    U64,
+    U128, // UNSIGNED
+    F16,
+    F32,
+    F64,
+    F128, // REAL
 
     pub fn codegen(self: *PrimitiveType, module: *Module) types.LLVMTypeRef {
         _ = module;
@@ -163,16 +171,15 @@ pub const PrimitiveType = enum {
 
 // Abstract Syntax Tree
 
-pub const Type = struct {
-
+pub const TypeAST = struct {
     token_index: usize,
     content: union(enum) {
         primitive: PrimitiveType,
-        reference: *Reference,
+        reference: *ReferenceAST,
     },
 
-    pub fn parse(util: *Tokens) !*Type {
-        const typ = try util.alloc.create(Type);
+    pub fn parse(util: *Tokens) !*TypeAST {
+        const typ = try util.alloc.create(TypeAST);
         typ.token_index = util.current_index;
         if (std.mem.eql(u8, util.current().content, "void")) {
             typ.content = .{ .primitive = PrimitiveType.VOID };
@@ -200,14 +207,14 @@ pub const Type = struct {
             typ.content = .{ .primitive = PrimitiveType.I128 };
         } else if (std.mem.eql(u8, util.current().content, "f16")) {
             typ.content = .{ .primitive = PrimitiveType.F16 };
-        }else if (std.mem.eql(u8, util.current().content, "f32")) {
+        } else if (std.mem.eql(u8, util.current().content, "f32")) {
             typ.content = .{ .primitive = PrimitiveType.F32 };
         } else if (std.mem.eql(u8, util.current().content, "f64")) {
             typ.content = .{ .primitive = PrimitiveType.F64 };
         } else if (std.mem.eql(u8, util.current().content, "f128")) {
             typ.content = .{ .primitive = PrimitiveType.F128 };
         } else {
-            const expr = try Reference.parse(util);
+            const expr = try ReferenceAST.parse(util);
             defer util.alloc.destroy(expr);
             typ.content = .{ .reference = expr.reference };
             return typ;
@@ -216,7 +223,7 @@ pub const Type = struct {
         return typ;
     }
 
-    pub fn deinit(self: *Type, alloc: Allocator) void {
+    pub fn deinit(self: *TypeAST, alloc: Allocator) void {
         switch (self.content) {
             .reference => |ref| {
                 ref.deinit(alloc);
@@ -226,24 +233,24 @@ pub const Type = struct {
         alloc.destroy(self);
     }
 
-    pub fn codegen(self: *Type, module: *Module) types.LLVMTypeRef {
+    pub fn codegen(self: *TypeAST, module: *Module) types.LLVMTypeRef {
         return switch (self.content) {
-            .reference => |_| { std.debug.panic("unsupported type", .{}); },
+            .reference => |_| {
+                std.debug.panic("unsupported type", .{});
+            },
             .primitive => |primitive| {
                 return primitive.codegen(module);
             },
         };
     }
-
 };
 
-pub const Boolean = struct {
-
+pub const BooleanAST = struct {
     token_index: usize,
     value: enum { True, False },
 
-    pub fn parse(util: *Tokens) !*Boolean {
-        const boolean = try util.alloc.create(Boolean);
+    pub fn parse(util: *Tokens) !*BooleanAST {
+        const boolean = try util.alloc.create(BooleanAST);
         boolean.token_index = util.current_index;
         if (std.mem.eql(u8, util.current().content, "true")) {
             boolean.value = .True;
@@ -256,28 +263,26 @@ pub const Boolean = struct {
         return boolean;
     }
 
-    pub fn into_expr(self: *Boolean, alloc: Allocator) !*Expression {
-        const expr = try alloc.create(Expression);
+    pub fn into_expr(self: *BooleanAST, alloc: Allocator) !*ExpressionAST {
+        const expr = try alloc.create(ExpressionAST);
         expr.* = .{ .boolean = self };
         return expr;
     }
 
-    pub fn deinit(self: *Boolean, alloc: Allocator) void {
+    pub fn deinit(self: *BooleanAST, alloc: Allocator) void {
         alloc.destroy(self);
     }
 
-    pub fn codegen(self: *Boolean, module: *Module) types.LLVMValueRef {
+    pub fn codegen(self: *BooleanAST, module: *Module) types.LLVMValueRef {
         _ = module;
         return switch (self.value) {
             .True => core.LLVMConstInt(core.LLVMInt1Type(), 1, false),
             .False => core.LLVMConstInt(core.LLVMInt1Type(), 0, false),
         };
     }
-
 };
 
-pub const Number = struct {
-
+pub const NumberAST = struct {
     token_index: usize,
     type: ?PrimitiveType,
     numeral: union(enum) {
@@ -288,40 +293,37 @@ pub const Number = struct {
         real: f64,
     },
 
-    pub fn parse(util: *Tokens) !*Number {
-        const number = try util.alloc.create(Number);
+    pub fn parse(util: *Tokens) !*NumberAST {
+        const number = try util.alloc.create(NumberAST);
         number.token_index = util.current_index;
         number.type = null;
         if (std.mem.indexOf(u8, util.current().content, ".") == null) { // integer
-            number.numeral = .{ .integer = .{ 
+            number.numeral = .{ .integer = .{
                 .value = try std.fmt.parseInt(c_ulonglong, util.current().content, 0),
                 .sign = true,
             } };
         } else { // real
-            number.numeral = .{ 
-                .real = try std.fmt.parseFloat(f64, util.current().content)
-            };
+            number.numeral = .{ .real = try std.fmt.parseFloat(f64, util.current().content) };
         }
         util.consume();
         return number;
     }
 
-    pub fn into_expr(self: *Number, alloc: Allocator) !*Expression {
-        const expr = try alloc.create(Expression);
+    pub fn into_expr(self: *NumberAST, alloc: Allocator) !*ExpressionAST {
+        const expr = try alloc.create(ExpressionAST);
         expr.* = .{ .number = self };
         return expr;
     }
 
-    pub fn deinit(self: *Number, alloc: Allocator) void {
+    pub fn deinit(self: *NumberAST, alloc: Allocator) void {
         alloc.destroy(self);
     }
 
-    pub fn codegen(self: *Number, module: *Module) types.LLVMValueRef {
+    pub fn codegen(self: *NumberAST, module: *Module) types.LLVMValueRef {
         return switch (self.numeral) {
             .integer => |integer| {
                 if (self.type == null) {
                     return core.LLVMConstInt(core.LLVMInt32Type(), integer.value, integer.sign);
-                
                 } else {
                     return core.LLVMConstInt(self.type.?.codegen(module), integer.value, integer.sign);
                 }
@@ -335,36 +337,34 @@ pub const Number = struct {
             },
         };
     }
-
 };
 
-pub const BinaryTree = struct {
-
-    left: *Expression,
-    right: *Expression,
+pub const BinaryTreeAST = struct {
+    left: *ExpressionAST,
+    right: *ExpressionAST,
     token_index: usize, // refer to operator
     operator: Operator,
 
-    pub fn parse(util: *Tokens, last_precedence: u8, left: *Expression) anyerror!*Expression {
+    pub fn parse(util: *Tokens, last_precedence: u8, left: *ExpressionAST) anyerror!*ExpressionAST {
         var lhs = left;
         while (true) {
             if (util.current().token_type == TokenType.OPERATOR) {
                 const op_index = util.current_index;
-                var op = BinaryTree.Operator.parse(util);
+                var op = BinaryTreeAST.Operator.parse(util);
                 if (op.precedence() < last_precedence) {
                     util.current_index = op_index;
                     return lhs;
                 } else {
-                    var right = try Expression.parsePrimary(util);
+                    var right = try ExpressionAST.parsePrimary(util);
                     if (util.current().token_type == TokenType.OPERATOR) {
                         const op2_index = util.current_index;
-                        var op2 = BinaryTree.Operator.parse(util);
+                        var op2 = BinaryTreeAST.Operator.parse(util);
                         if (op.precedence() < op2.precedence()) {
                             util.current_index = op2_index;
-                            right = try BinaryTree.parse(util, op.precedence() + 1, right);
+                            right = try BinaryTreeAST.parse(util, op.precedence() + 1, right);
                         }
                     }
-                    var binary_tree = try util.alloc.create(BinaryTree);
+                    var binary_tree = try util.alloc.create(BinaryTreeAST);
                     binary_tree.left = lhs;
                     binary_tree.right = right;
                     binary_tree.operator = op;
@@ -377,20 +377,23 @@ pub const BinaryTree = struct {
         }
     }
 
-    pub fn into_expr(self: *BinaryTree, alloc: Allocator) !*Expression {
-        const expr = try alloc.create(Expression);
+    pub fn into_expr(self: *BinaryTreeAST, alloc: Allocator) !*ExpressionAST {
+        const expr = try alloc.create(ExpressionAST);
         expr.* = .{ .binary_tree = self };
         return expr;
     }
 
-    pub fn deinit(self: *BinaryTree, alloc: Allocator) void {
+    pub fn deinit(self: *BinaryTreeAST, alloc: Allocator) void {
         self.left.deinit(alloc);
         self.right.deinit(alloc);
         alloc.destroy(self);
     }
 
     pub const Operator = enum {
-        Add, Sub, Mul, Div,
+        Add,
+        Sub,
+        Mul,
+        Div,
         // Define,
         // Equal, GreaterThan, LessThan, GreaterOrEqual, LessOrEqual,
 
@@ -426,22 +429,20 @@ pub const BinaryTree = struct {
             };
         }
     };
-
 };
 
-pub const Call = struct {
-
+pub const CallAST = struct {
     token_index: usize,
-    reference: *Reference,
-    expressions: []*Expression,
+    reference: *ReferenceAST,
+    expressions: []*ExpressionAST,
 
-    pub fn into_expr(self: *Call, alloc: Allocator) !*Expression {
-        const expr = try alloc.create(Expression);
+    pub fn into_expr(self: *CallAST, alloc: Allocator) !*ExpressionAST {
+        const expr = try alloc.create(ExpressionAST);
         expr.* = .{ .call = self };
         return expr;
     }
 
-    pub fn deinit(self: *Call, alloc: Allocator) void {
+    pub fn deinit(self: *CallAST, alloc: Allocator) void {
         for (self.expressions) |node| {
             node.deinit(alloc);
         }
@@ -450,58 +451,38 @@ pub const Call = struct {
         alloc.destroy(self);
     }
 
-    pub fn codegen(self: *Call, module: *Module) types.LLVMValueRef {
+    pub fn codegen(self: *CallAST, module: *Module) types.LLVMValueRef {
         const name = try module.alloc.dupeZ(u8, self.reference.identifier);
         defer module.alloc.free(name);
         const func = core.LLVMGetNamedFunction(module.llvm_module, name);
 
         if (core.LLVMCountParams(func) != self.expressions.len) {
-            module.util.panic(std.fmt.allocPrint(module.alloc, "expected {d} params found {d}", .{
-                core.LLVMCountParams(func), self.expressions.len
-            }), self.token_index);
+            module.util.panic(std.fmt.allocPrint(module.alloc, "expected {d} params found {d}", .{ core.LLVMCountParams(func), self.expressions.len }), self.token_index);
         }
 
-        
-    }
+        const args = std.ArrayList(types.LLVMValueRef).init(module.alloc);
+        defer args.deinit();
+        for (self.expressions) |expr| {
+            try args.append(expr.codegen(module));
+        }
+        const length = args.items.len;
+        const z = try module.alloc.dupeZ(types.LLVMValueRef, try args.toOwnedSlice());
 
+        const return_type = core.LLVMGetCalledFunctionType(func);
+        return core.LLVMBuildCall2(module.llvm_builder, return_type, func, z, length, "calltmp");
+    }
 };
 
-pub const Reference = struct {
-
+pub const ReferenceAST = struct {
     identifier: []const u8,
     token_index: usize,
 
-    pub fn parse(util: *Tokens) !*Expression {
-        const reference = try util.alloc.create(Reference);
+    pub fn parse(util: *Tokens) !*ExpressionAST {
+        const reference = try util.alloc.create(ReferenceAST);
         reference.token_index = util.current_index;
-        if (std.mem.eql(u8, util.current().content, "void")
-         or std.mem.eql(u8, util.current().content, "bool")
-         or std.mem.eql(u8, util.current().content, "u8")
-         or std.mem.eql(u8, util.current().content, "u16")
-         or std.mem.eql(u8, util.current().content, "u32")
-         or std.mem.eql(u8, util.current().content, "u64")
-         or std.mem.eql(u8, util.current().content, "u128")
-         or std.mem.eql(u8, util.current().content, "i8")
-         or std.mem.eql(u8, util.current().content, "i16")
-         or std.mem.eql(u8, util.current().content, "i32")
-         or std.mem.eql(u8, util.current().content, "i64")
-         or std.mem.eql(u8, util.current().content, "i128")
-         or std.mem.eql(u8, util.current().content, "f16")
-         or std.mem.eql(u8, util.current().content, "f32")
-         or std.mem.eql(u8, util.current().content, "f64")
-         or std.mem.eql(u8, util.current().content, "f128")
-         or std.mem.eql(u8, util.current().content, "null")
-         or std.mem.eql(u8, util.current().content, "fn")
-         or std.mem.eql(u8, util.current().content, "extern")
-         or std.mem.eql(u8, util.current().content, "if")
-         or std.mem.eql(u8, util.current().content, "else")
-         or std.mem.eql(u8, util.current().content, "var")
-         or std.mem.eql(u8, util.current().content, "const")
-         or std.mem.eql(u8, util.current().content, "true")
-         or std.mem.eql(u8, util.current().content, "false")
-         or std.mem.eql(u8, util.current().content, "return")) {
+        if (std.mem.eql(u8, util.current().content, "void") or std.mem.eql(u8, util.current().content, "bool") or std.mem.eql(u8, util.current().content, "u8") or std.mem.eql(u8, util.current().content, "u16") or std.mem.eql(u8, util.current().content, "u32") or std.mem.eql(u8, util.current().content, "u64") or std.mem.eql(u8, util.current().content, "u128") or std.mem.eql(u8, util.current().content, "i8") or std.mem.eql(u8, util.current().content, "i16") or std.mem.eql(u8, util.current().content, "i32") or std.mem.eql(u8, util.current().content, "i64") or std.mem.eql(u8, util.current().content, "i128") or std.mem.eql(u8, util.current().content, "f16") or std.mem.eql(u8, util.current().content, "f32") or std.mem.eql(u8, util.current().content, "f64") or std.mem.eql(u8, util.current().content, "f128") or std.mem.eql(u8, util.current().content, "null") or std.mem.eql(u8, util.current().content, "fn") or std.mem.eql(u8, util.current().content, "extern") or std.mem.eql(u8, util.current().content, "if") or std.mem.eql(u8, util.current().content, "else") or std.mem.eql(u8, util.current().content, "var") or std.mem.eql(u8, util.current().content, "const") or std.mem.eql(u8, util.current().content, "true") or std.mem.eql(u8, util.current().content, "false") or std.mem.eql(u8, util.current().content, "return")) {
             util.unexpected_token();
-        } 
+        }
         const temp = try util.alloc.alloc(u8, util.current().content.len);
         std.mem.copyForwards(u8, temp, util.current().content);
         reference.identifier = temp;
@@ -509,15 +490,15 @@ pub const Reference = struct {
         if (util.current_char() != '(') {
             return try reference.into_expr(util.alloc);
         } else {
-            const call = try util.alloc.create(Call);
+            const call = try util.alloc.create(CallAST);
             call.token_index = util.current_index;
             call.reference = reference;
             util.next(); // eat '('
-            var list = std.ArrayList(*Expression).init(util.alloc);
+            var list = std.ArrayList(*ExpressionAST).init(util.alloc);
             defer list.deinit();
             if (util.current_char() != ')') {
                 while (true) {
-                    const expr = try Expression.parseBinary(util);
+                    const expr = try ExpressionAST.parseBinary(util);
                     try list.append(expr);
                     if (util.current_char() == ')') {
                         break;
@@ -534,51 +515,48 @@ pub const Reference = struct {
         }
     }
 
-    pub fn into_expr(self: *Reference, alloc: Allocator) !*Expression {
-        const expr = try alloc.create(Expression);
+    pub fn into_expr(self: *ReferenceAST, alloc: Allocator) !*ExpressionAST {
+        const expr = try alloc.create(ExpressionAST);
         expr.* = .{ .reference = self };
         return expr;
     }
 
-    pub fn deinit(self: *Reference, alloc: Allocator) void {
+    pub fn deinit(self: *ReferenceAST, alloc: Allocator) void {
         alloc.free(self.identifier);
         alloc.destroy(self);
     }
-
 };
 
-pub const Expression = union(enum) {
-
-    number: *Number,
-    boolean: *Boolean,
-    binary_tree: *BinaryTree,
-    reference: *Reference,
-    body: *Body,
+pub const ExpressionAST = union(enum) {
+    number: *NumberAST,
+    boolean: *BooleanAST,
+    binary_tree: *BinaryTreeAST,
+    reference: *ReferenceAST,
+    body: *BodyAST,
     return_expr: struct {
         token_index: usize,
-        expression: ?*Expression,
+        expression: ?*ExpressionAST,
     },
-    call: *Call,
+    call: *CallAST,
 
-    fn parsePrimary(util: *Tokens) anyerror!*Expression {
+    fn parsePrimary(util: *Tokens) anyerror!*ExpressionAST {
         return switch (util.current().token_type) {
             .IDENTIFIER => {
-                if (std.mem.eql(u8, util.current().content, "true")
-                or std.mem.eql(u8, util.current().content, "false")) {
-                    return (try Boolean.parse(util)).into_expr(util.alloc);
+                if (std.mem.eql(u8, util.current().content, "true") or std.mem.eql(u8, util.current().content, "false")) {
+                    return (try BooleanAST.parse(util)).into_expr(util.alloc);
                 } else {
-                    return try Reference.parse(util);
+                    return try ReferenceAST.parse(util);
                 }
             },
-            .NUMBER => (try Number.parse(util)).into_expr(util.alloc),
+            .NUMBER => (try NumberAST.parse(util)).into_expr(util.alloc),
             .UNIQUE => switch (util.current_char()) {
                 '(' => try parseParenthesis(util),
-                '{' => (try Body.parse(util)).into_expr(util.alloc),
+                '{' => (try BodyAST.parse(util)).into_expr(util.alloc),
                 '-' => {
                     util.next(); // eat '-'
                     return switch (util.current().token_type) {
                         .NUMBER => {
-                            const expr = try Number.parse(util);
+                            const expr = try NumberAST.parse(util);
                             expr.numeral.integer.sign = !expr.numeral.integer.sign;
                             return expr.into_expr(util.alloc);
                         },
@@ -591,9 +569,9 @@ pub const Expression = union(enum) {
         };
     }
 
-    fn parseParenthesis(util: *Tokens) anyerror!*Expression {
+    fn parseParenthesis(util: *Tokens) anyerror!*ExpressionAST {
         util.next(); // eat '('
-        const expresion = try Expression.parseBinary(util);
+        const expresion = try ExpressionAST.parseBinary(util);
         if (util.current_char() != ')') {
             util.unexpected_token();
         }
@@ -601,11 +579,11 @@ pub const Expression = union(enum) {
         return expresion;
     }
 
-    pub fn parseBinary(util: *Tokens) anyerror!*Expression {
-        return BinaryTree.parse(util, 0, try Expression.parsePrimary(util));
+    pub fn parseBinary(util: *Tokens) anyerror!*ExpressionAST {
+        return BinaryTreeAST.parse(util, 0, try ExpressionAST.parsePrimary(util));
     }
 
-    pub fn deinit(self: *Expression, alloc: Allocator) void {
+    pub fn deinit(self: *ExpressionAST, alloc: Allocator) void {
         switch (self.*) {
             .number => |node| node.deinit(alloc),
             .boolean => |node| node.deinit(alloc),
@@ -622,38 +600,54 @@ pub const Expression = union(enum) {
         alloc.destroy(self);
     }
 
+    pub fn codegen(self: *ExpressionAST, module: *Module) types.LLVMValueRef {
+        return switch (self.*) {
+            .number => |node| node.codegen(module),
+            .boolean => |node| node.codegen(module),
+            .binary_tree => |node| node.codegen(module),
+            .reference => |node| node.codegen(module),
+            .body => |node| node.codegen(module),
+            .return_expr => |node| {
+                if (node.expression != null) {
+                    const expr = node.expression.?.codegen(module);
+                    return core.LLVMBuildRet(module.llvm_builder, expr);
+                } else {
+                    return core.LLVMBuildRetVoid(module.llvm_builder);
+                }
+            },
+            .call => |node| node.codegen(module),
+        };
+    }
 };
 
-pub const Body = struct {
-
+pub const BodyAST = struct {
     token_index: usize,
-    expressions: []*Expression,
+    expressions: []*ExpressionAST,
 
-    pub fn parse(util: *Tokens) !*Body {
-        const body = try util.alloc.create(Body);
+    pub fn parse(util: *Tokens) !*BodyAST {
+        const body = try util.alloc.create(BodyAST);
         body.token_index = util.current_index;
         util.next(); // eat '{'
-        var list = std.ArrayList(*Expression).init(util.alloc);
+        var list = std.ArrayList(*ExpressionAST).init(util.alloc);
         defer list.deinit();
         while (util.current_char() != '}') {
-            if (util.current().token_type == TokenType.IDENTIFIER 
-            and std.mem.eql(u8, util.current().content, "return")) {
-                const ret = try util.alloc.create(Expression);
+            if (util.current().token_type == TokenType.IDENTIFIER and std.mem.eql(u8, util.current().content, "return")) {
+                const ret = try util.alloc.create(ExpressionAST);
                 util.next(); // eat "return"
                 if (util.current_char() == ';') {
-                    ret.* = .{ .return_expr = .{ 
-                        .token_index = util.current_index - 1, 
+                    ret.* = .{ .return_expr = .{
+                        .token_index = util.current_index - 1,
                         .expression = null,
                     } };
                 } else {
-                    ret.* = .{ .return_expr = .{ 
-                        .token_index = util.current_index - 1, 
-                        .expression = try Expression.parseBinary(util),
+                    ret.* = .{ .return_expr = .{
+                        .token_index = util.current_index - 1,
+                        .expression = try ExpressionAST.parseBinary(util),
                     } };
                 }
                 try list.append(ret);
             } else {
-                try list.append(try Expression.parseBinary(util));
+                try list.append(try ExpressionAST.parseBinary(util));
             }
             if (util.current_char() == ';') {
                 util.next();
@@ -666,29 +660,27 @@ pub const Body = struct {
         return body;
     }
 
-    pub fn into_expr(self: *Body, alloc: Allocator) !*Expression {
-        const expr = try alloc.create(Expression);
+    pub fn into_expr(self: *BodyAST, alloc: Allocator) !*ExpressionAST {
+        const expr = try alloc.create(ExpressionAST);
         expr.* = .{ .body = self };
         return expr;
     }
 
-    pub fn deinit(self: *Body, alloc: Allocator) void {
+    pub fn deinit(self: *BodyAST, alloc: Allocator) void {
         for (self.expressions) |expr| {
             expr.deinit(alloc);
         }
         alloc.free(self.expressions);
         alloc.destroy(self);
     }
-
 };
 
-pub const Parameter = struct {
-
+pub const ParameterAST = struct {
     name: []const u8,
-    type: *Type,
+    type: *TypeAST,
 
-    pub fn parse(util: *Tokens) !*Parameter {
-        const parameter = try util.alloc.create(Parameter);
+    pub fn parse(util: *Tokens) !*ParameterAST {
+        const parameter = try util.alloc.create(ParameterAST);
         const temp = try util.alloc.alloc(u8, util.current().content.len);
         std.mem.copyForwards(u8, temp, util.current().content);
         parameter.name = temp;
@@ -697,27 +689,25 @@ pub const Parameter = struct {
             util.panic(try std.fmt.allocPrint(util.alloc, "expected ':' found '{s}'", .{util.current().content}), util.current_index);
         }
         util.next(); // eat ':'
-        const typ = try Type.parse(util);
+        const typ = try TypeAST.parse(util);
         parameter.type = typ;
         return parameter;
     }
 
-    pub fn deinit(self: *Parameter, alloc: Allocator) void {
+    pub fn deinit(self: *ParameterAST, alloc: Allocator) void {
         alloc.free(self.name);
         self.type.deinit(alloc);
         alloc.destroy(self);
     }
-
 };
 
-pub const Prototype = struct {
-
+pub const PrototypeAST = struct {
     name: []const u8,
-    parameters: []*Parameter,
-    return_type: *Type,
+    parameters: []*ParameterAST,
+    return_type: *TypeAST,
 
-    pub fn parse(util: *Tokens) !*Prototype {
-        const prototype = try util.alloc.create(Prototype);
+    pub fn parse(util: *Tokens) !*PrototypeAST {
+        const prototype = try util.alloc.create(PrototypeAST);
         util.next(); // eat "fn"
         if (util.current().token_type == TokenType.IDENTIFIER) {
             const id_index = util.current_index;
@@ -726,11 +716,11 @@ pub const Prototype = struct {
             prototype.name = temp;
             util.next(); // eat identifier
             if (util.current_char() == '(') {
-                var list = std.ArrayList(*Parameter).init(util.alloc);
+                var list = std.ArrayList(*ParameterAST).init(util.alloc);
                 defer list.deinit();
                 util.next(); // eat '('
                 while (util.current_char() != ')') {
-                    try list.append(try Parameter.parse(util));
+                    try list.append(try ParameterAST.parse(util));
                     if (util.current_char() == ',') {
                         util.next(); // eat ','
                     } else if (util.current_char() != ')') {
@@ -741,9 +731,9 @@ pub const Prototype = struct {
                 prototype.parameters = try list.toOwnedSlice();
                 if (util.current_char() == ':') {
                     util.next(); // eat ':'
-                    prototype.return_type = try Type.parse(util);
+                    prototype.return_type = try TypeAST.parse(util);
                 } else {
-                    const typ = try util.alloc.create(Type);
+                    const typ = try util.alloc.create(TypeAST);
                     typ.content = .{ .primitive = PrimitiveType.VOID };
                     typ.token_index = id_index;
                     prototype.return_type = typ;
@@ -755,7 +745,7 @@ pub const Prototype = struct {
         return prototype;
     }
 
-    pub fn deinit(self: *Prototype, alloc: Allocator) void {
+    pub fn deinit(self: *PrototypeAST, alloc: Allocator) void {
         alloc.free(self.name);
         for (self.parameters) |parameter| {
             parameter.deinit(alloc);
@@ -764,19 +754,17 @@ pub const Prototype = struct {
         self.return_type.deinit(alloc);
         alloc.destroy(self);
     }
-
 };
 
-pub const Function = struct {
+pub const FunctionAST = struct {
+    prototype: *PrototypeAST,
+    body: ?*BodyAST,
 
-    prototype: *Prototype,
-    body: ?*Body,
-
-    pub fn parse(util: *Tokens) !*Function {
-        const function = try util.alloc.create(Function);
-        function.prototype = try Prototype.parse(util);
+    pub fn parse(util: *Tokens) !*FunctionAST {
+        const function = try util.alloc.create(FunctionAST);
+        function.prototype = try PrototypeAST.parse(util);
         if (util.current_char() == '{') {
-            function.body = try Body.parse(util);
+            function.body = try BodyAST.parse(util);
         } else if (util.current_char() == ';') {
             function.body = null;
             util.consume();
@@ -786,12 +774,11 @@ pub const Function = struct {
         return function;
     }
 
-    pub fn deinit(self: *Function, alloc: Allocator) void {
+    pub fn deinit(self: *FunctionAST, alloc: Allocator) void {
         self.prototype.deinit(alloc);
         if (self.body != null) {
             self.body.?.deinit(alloc);
         }
         alloc.destroy(self);
     }
-
 };
