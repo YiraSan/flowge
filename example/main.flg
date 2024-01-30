@@ -1,28 +1,16 @@
-// class Animal {
-//     pub get_age(): u8;
-// }
-// 
-// class Human: Animal {
-//     priv age: u8 = 0;
-//     
-//     pub get_age() {
-//         return this.age;
-//     }
-// }
 
-// fn main() {
-//     var human = Human();
-//     println("{}", human.get_age());
-// }
 
-// fn value(): f64 {
-//     return 3.0 + 4.0 * 5.0;
-// }
 
-// fn main() {
-//     value();
-// }
 
-fn main(test: i32): void;
 
-// fn main();
+
+
+
+
+
+
+
+
+fn main(): void {
+
+}
