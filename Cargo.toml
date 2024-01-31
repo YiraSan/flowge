@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.79"
+colored = "2.1.0"
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm17-0-force-dynamic"] }

@@ -1,6 +1,7 @@
 use anyhow::Result;
+use colored::Colorize;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub enum TokenType {
 
     Number,
@@ -9,17 +10,14 @@ pub enum TokenType {
 
     Char,
 }
-
-#[derive(Debug)]
 pub struct Token {
     line: usize,
     begin_column: usize,
     end_column: usize,
-    tk_type: TokenType,
-    content: String,
+    pub tk_type: TokenType,
+    pub content: String,
 }
 
-#[derive(Debug)]
 pub struct Tokens {
     path: String,
     tokens: Vec<Token>,
@@ -159,15 +157,15 @@ impl Tokens {
     
         let token = &self.tokens[token_index];
 
-        println!("{}:{}:{} {}", self.path, token.line, token.begin_column, message.into());
+        println!("{}:{}:{} {}", self.path, token.line, token.begin_column, message.into().red());
 
-        print!("  {} |", token.line);
+        print!("  {} {}", token.line.to_string().black(), "|".black());
 
         let mut sub = "  ".to_string();
         for _ in 0..format!("{}", token.line).len() {
             sub.push(' ');
         }
-        sub.push_str(" |");
+        sub.push_str(&" |".black().to_string());
 
         let mut ltc = 0;
         for (i, tk) in self.tokens.iter().enumerate() {
@@ -182,7 +180,7 @@ impl Tokens {
                 }
                 for _ in 0..tk.content.len() {
                     if token_index == i {
-                        sub.push('^');
+                        sub.push_str(&"^".red().to_string());
                     } else {
                         sub.push(' ');
                     }
@@ -192,8 +190,38 @@ impl Tokens {
 
         println!("\n{sub}");
 
+        println!();
+
     }
 
-    
+    pub fn current(&self) -> &Token {
+        &self.tokens[self.index]
+    }
+
+    pub fn next(&mut self) {
+        self.consume();
+        if self.current().tk_type == TokenType::EndOfFile {
+            self.println("unexpected end of file", self.index-1);
+            std::process::exit(1);
+        }
+    }
+
+    pub fn consume(&mut self) {
+        if self.current().tk_type != TokenType::EndOfFile {
+            self.index += 1;
+        }
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub fn current_char(&self) -> char {
+        if self.current().content.len() > 0 {
+            self.current().content.chars().nth(0).unwrap()
+        } else {
+            '\0'
+        }
+    }
 
 }
