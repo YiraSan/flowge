@@ -10,6 +10,7 @@ pub enum TokenType {
 
     Char,
 }
+
 pub struct Token {
     line: usize,
     begin_column: usize,

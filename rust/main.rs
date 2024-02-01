@@ -21,21 +21,8 @@ fn main() -> Result<()> {
 
     println!("{:?}", FunctionAST::parse(&mut tokens));
 
-    let mod_name = "flowge";
-
     let llvm_context = Context::create();
-
-    let mut module = FlowgeModule {
-        name: mod_name.to_string(),
-        contexts: Vec::new(),
-        top_levels: HashMap::new(),
-        llvm_module: llvm_context.create_module(mod_name),
-        llvm_builder: llvm_context.create_builder(),
-        llvm_context: &llvm_context,
-    };
-
-    let ctx = module.new_context(0);
-    let context = &mut module.contexts[ctx];
+    let module = FlowgeModule::new("flowge", &llvm_context);
 
     println!("\n{}", module.print().unwrap());
 

@@ -4,7 +4,7 @@ use anyhow::Result;
 use inkwell::builder::Builder;
 use inkwell::module::Module;
 use inkwell::support::LLVMString;
-use inkwell::types::AnyType;
+use inkwell::types::{AnyType, AnyTypeEnum};
 use inkwell::context::Context;
 
 pub struct Function {
@@ -43,6 +43,26 @@ pub struct FlowgeModule<'ctx> {
 }
 
 impl<'ctx> FlowgeModule<'ctx> {
+
+    pub fn new<S: Into<String>>(name: S, llvm_context: &'ctx Context) -> FlowgeModule<'_> {
+        let name = name.into();
+        let llvm_module = llvm_context.create_module(&name);
+        let llvm_builder = llvm_context.create_builder();
+        let mut module = FlowgeModule {
+            name,
+            contexts: Vec::new(),
+            top_levels: HashMap::new(),
+            llvm_context,
+            llvm_module,
+            llvm_builder,
+        };
+        let ctx = module.new_context(0);
+        let context = &mut module.contexts[ctx];
+
+        context.add_type("void", );
+
+        module
+    }
 
     pub fn new_context(&mut self, parent: usize) -> usize {
         let index = self.contexts.len();
