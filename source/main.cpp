@@ -114,10 +114,12 @@ class Tokens {
 public:
     std::string path;
     std::vector<Token*> tokens;
+    size_t index;
 
     Tokens(std::string path) {
 
         this->path = path;
+        this->index = 0;
 
         std::ifstream t(this->path);
         std::stringstream buffer;
@@ -145,7 +147,9 @@ public:
 
         std::cout << "  " << COLOR_BLACK << token->line << " " << "|" << COLOR_RESET;
         std::string sub("  ");
-        for (size_t i = 0; i < token->line; i++) {
+        std::string t;
+        t += token->line;
+        for (size_t i = 0; i < t.length(); i++) {
             sub += " ";
         }
         sub += COLOR_BLACK;
@@ -174,11 +178,135 @@ public:
         }
         std::cout << std::endl << sub << std::endl << std::endl;
     }
+
+    Token* current() {
+        return this->tokens[this->index];
+    }
+
+    char cu_char() {
+        return this->current()->content[0];
+    }
+
+    void consume() {
+        if (this->tokens[this->index]->type != tok_eof) {
+            this->index += 1;
+        }
+    }
+
+    void next() {
+        this->consume();
+        if (this->tokens[this->index]->type == tok_eof) {
+            this->println("unexpected end of file", this->index - 1);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+};
+
+struct Parameter {
+    std::string name;
+    size_t name_index;
+    std::string type;
+    size_t type_index;
+};
+
+class Function {
+public:
+    Tokens* tokens;
+    std::string name;
+    size_t name_index;
+    std::vector<Parameter*> parameters;
+    std::string return_type;
+    size_t return_type_index;
+
+    Function(Tokens* tokens) {
+        this->tokens = tokens;
+
+        tokens->next(); // eat "fn"
+
+        if (tokens->current()->type != tok_identifier) {
+            tokens->println("expected function identifier", tokens->index);
+            exit(EXIT_FAILURE);
+        }
+        this->name = tokens->current()->content;
+        this->name_index = tokens->index;
+        tokens->next(); // eat identifier
+
+        if (tokens->cu_char() != '(') {
+            tokens->println("expected '('", tokens->index);
+            exit(EXIT_FAILURE);
+        }
+        tokens->next(); // eat '('
+
+        while (tokens->cu_char() != ')') {
+            Parameter* parameter = new Parameter;
+            
+            if (tokens->current()->type != tok_identifier) {
+                tokens->println("expected identifier", tokens->index);
+                exit(EXIT_FAILURE);
+            }
+            parameter->name = tokens->current()->content;
+            parameter->name_index = tokens->index;
+            tokens->next(); // eat identifier
+
+            if (tokens->cu_char() != ':') {
+                tokens->println("expected ':'", tokens->index);
+                exit(EXIT_FAILURE);
+            }
+            tokens->next(); // eat ':'
+
+            if (tokens->current()->type != tok_identifier) {
+                tokens->println("expected a type", tokens->index);
+                exit(EXIT_FAILURE);
+            }
+            parameter->type = tokens->current()->content;
+            parameter->type_index = tokens->index;
+            tokens->next(); // eat identifier
+
+            this->parameters.push_back(parameter);
+
+            if (tokens->cu_char() == ',') {
+                tokens->next(); // eat ','
+            } else if (tokens->cu_char() != ')') {
+                tokens->println("expected ',' or ')'", tokens->index);
+                exit(EXIT_FAILURE);
+            }
+        }
+        tokens->next(); // eat ')'
+
+        if (tokens->cu_char() == ':') {
+            tokens->next(); // eat ':'
+
+            if (tokens->current()->type != tok_identifier) {
+                tokens->println("expected a return type", tokens->index);
+                exit(EXIT_FAILURE);
+            }
+            this->return_type = tokens->current()->content;
+            this->return_type_index = tokens->index;
+            tokens->next(); // eat identifier
+        } else {
+            this->return_type = "void";
+            this->return_type_index = this->name_index;
+        }
+        
+        if (tokens->cu_char() == '{') {
+            std::cout << "todo fn body" << std::endl;
+            exit(EXIT_FAILURE);
+        } else if (tokens->cu_char() == ';') {
+            tokens->consume(); // eat ';'
+        } else {
+            tokens->println("expected ';' or '{'", tokens->index);
+            exit(EXIT_FAILURE);
+        }
+
+    }
+
 };
 
 int main() {
     std::cout << "🐉 flowge" << COLOR_MAGENTA << " 0.1n" << COLOR_RESET << std::endl << std::endl;
     Tokens* tokens = new Tokens("example/main.flg");
-    tokens->println("yay", 11);
+    Function* function = new Function(tokens);
+    std::cout << function->return_type << std::endl;
     return 0;
 }
