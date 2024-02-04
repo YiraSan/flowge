@@ -12,13 +12,13 @@
 enum TokenType {
     tok_eof,
 
-    // commands
     tok_fn,
 
-    // primary
     tok_identifier,
     tok_number,
     tok_char,
+
+    tok_binary_operator,
 };
 
 struct Token {

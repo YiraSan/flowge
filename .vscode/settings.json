@@ -53,6 +53,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "*.inc": "cpp",
-        "*.def": "cpp"
+        "*.def": "cpp",
+        "map": "cpp",
+        "list": "cpp"
     }
 }

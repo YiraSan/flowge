@@ -42,11 +42,24 @@ Token* tokenize(
             Token* token = new Token;
             token->begin_column = *column;
             token->line = *line;
-            token->type = tok_identifier;
+            token->type = tok_number;
             token->content = std::string();
+            if (current == '0') {
+                token->content += current;
+                *column += 1;
+                *index += 1;
+                if (*index < text.length()) {
+                    char current = text[*index];
+                    if (current == 'x' || current == 'b' || current == 'o') {
+                        token->content += current;
+                        *column += 1;
+                        *index += 1;
+                    }
+                }
+            }
             while (*index < text.length()) {
                 char current = text[*index];
-                if (isascii(current) && isdigit(current)) {
+                if (isascii(current) && isalnum(current)) {
                     token->content += current;
                     *column += 1;
                     *index += 1;
@@ -54,12 +67,47 @@ Token* tokenize(
                     break;
                 }
             }
+            if (*index < text.length()) {
+                if (text[*index] == '.') {
+                    token->content += text[*index];
+                    *column += 1;
+                    *index += 1;
+                    while (*index < text.length()) {
+                        char current = text[*index];
+                        if (isascii(current) && isdigit(current)) {
+                            token->content += current;
+                            *column += 1;
+                            *index += 1;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+            token->end_column = *column;
+            return token;
+        } else if (current == '+' || current == '-' || current == '*' || current == '/' || current == '>' || current == '<' || current == '=') {
+            Token* token = new Token;
+            token->begin_column = *column;
+            token->line = *line;
+            token->type = tok_binary_operator;
+            std::string content;
+            content += current;
+            token->content = content;
+            *column += 1;
+            *index += 1;
+            if (*index < text.length()) {
+                if (text[*index] == '=') {
+                    token->content += text[*index];
+                    *column += 1;
+                    *index += 1;
+                }
+            }
             token->end_column = *column;
             return token;
         } else {
             Token* token = new Token;
             token->begin_column = *column;
-            token->end_column = *column+1;
             token->line = *line;
             token->type = tok_char;
             std::string content;
@@ -67,6 +115,7 @@ Token* tokenize(
             token->content = content;
             *column += 1;
             *index += 1;
+            token->end_column = *column;
             return token;
         }
     } else {
