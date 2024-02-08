@@ -1,6 +1,6 @@
 {
     "C_Cpp.default.includePath": [
-        "/usr/lib/llvm-17/include"
+        "/usr/include"
     ],
     "files.associations": {
         "array": "cpp",
