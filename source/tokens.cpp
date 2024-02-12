@@ -101,6 +101,18 @@ Token* tokenize(
                     token->content += text[*index];
                     *column += 1;
                     *index += 1;
+                } else if (text[*index] == '/') {
+                    *column += 1;
+                    *index += 1;
+                    while (*index < text.length()) {
+                        if (text[*index] != '\n') {
+                            *column += 1;
+                            *index += 1;
+                        } else {
+                            break;
+                        }
+                    }
+                    return tokenize(text, line, column, index);
                 }
             }
             token->end_column = *column;
