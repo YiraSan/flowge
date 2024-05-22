@@ -28,6 +28,25 @@ llvm::Type* Level::get_type(std::string name) {
     return nullptr;
 }
 
+void Level::add_value(std::string name, llvm::Value* value) {
+    this->values[name] = value;
+}
+
+llvm::Value* Level::get_value(std::string name) {
+    if (this->values.find(name) != this->values.end()) {
+        return this->values[name];
+    }
+
+    if (this->parent != nullptr) {
+        llvm::Value* p = this->parent->get_value(name);
+        if (p != nullptr) {
+            return p;
+        }
+    }
+
+    return nullptr;
+}
+
 void Level::add_function(Function* function) {
 
     if (this->get_type(function->name) != nullptr) {
@@ -84,7 +103,6 @@ Codegen::Codegen() {
     this->top_level->add_type("u32", this->llvm_builder->getInt32Ty());
     this->top_level->add_type("u64", this->llvm_builder->getInt64Ty());
     this->top_level->add_type("u128", this->llvm_builder->getInt128Ty());
-
 }
 
 std::string Codegen::print() {
@@ -105,6 +123,7 @@ void Function::codegen() {
             exit(EXIT_FAILURE);
         }
         arg.setName(this->parameters[i]->name);
+        this->level->add_value(this->parameters[i]->name, (llvm::Value*) &arg);
         i += 1;
     }
     if (this->block != nullptr) {
@@ -127,7 +146,7 @@ llvm::Value* NumberExpression::codegen(Level* level, std::string return_type) {
 }
 
 llvm::Value* ReferenceExpression::codegen(Level* level, std::string return_type) {
-    return nullptr;
+    return level->get_value(this->ref);
 }
 
 llvm::Value* BinaryTreeExpression::codegen(Level* level, std::string return_type) {

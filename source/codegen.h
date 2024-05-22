@@ -28,7 +28,7 @@ public:
     Level* parent;
     Codegen* codegen;
     std::map<std::string, Function*> functions;
-    std::map<std::string, llvm::Value*> variable;
+    std::map<std::string, llvm::Value*> values;
     std::map<std::string, llvm::Type*> types;
     
     Level(Level* parent, Codegen* codegen);
@@ -37,6 +37,9 @@ public:
 
     void add_type(std::string name, llvm::Type* type);
     llvm::Type* get_type(std::string name);
+
+    void add_value(std::string name, llvm::Value* value);
+    llvm::Value* get_value(std::string name);
 
     void add_function(Function* function);
 

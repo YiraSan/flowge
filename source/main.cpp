@@ -2,7 +2,7 @@
 #include "parser.h"
 
 int main() {
-    std::cout << "🐉 flowge" << COLOR_MAGENTA << " 0.1n" << COLOR_RESET << std::endl << std::endl;
+    std::cout << "; 🐉 flowge" << COLOR_MAGENTA << " 0.1n" << COLOR_RESET << std::endl << std::endl;
 
     Codegen* codegen = new Codegen();
     Tokens* tokens = new Tokens("example/main.flg");
