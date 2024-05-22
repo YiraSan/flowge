@@ -56,6 +56,7 @@ public:
     Codegen();
 
     std::string print();
+    void write(std::string file_path);
     
 };
 

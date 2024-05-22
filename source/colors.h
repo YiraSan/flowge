@@ -3,6 +3,7 @@
 
 #define COLOR_BLACK "\e[0;30m"
 #define COLOR_RED "\e[0;31m"
+#define COLOR_GREEN "\e[0;32m"
 #define COLOR_MAGENTA "\e[0;35m"
 
 #define COLOR_RESET "\e[0m"

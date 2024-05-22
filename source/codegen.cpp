@@ -112,6 +112,17 @@ std::string Codegen::print() {
     return result;
 }
 
+#include <fstream>
+  
+
+void Codegen::write(std::string file_path) {
+    std::string content = this->print();
+    std::ofstream file;
+    file.open(file_path);
+    file << content;
+    file.close();
+}
+
 // expression codegen
 
 void Function::codegen() {
