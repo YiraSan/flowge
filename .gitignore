@@ -1,3 +1,4 @@
+/.vscode
 *.ll
 *.bin
 *.s

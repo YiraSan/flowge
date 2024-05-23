@@ -35,6 +35,10 @@ Token* tokenize(
             }
             if (token->content == "fn") {
                 token->type = tok_fn;
+            } else if (token->content == "if") {
+                token->type = tok_if;
+            } else if (token->content == "else") {
+                token->type = tok_else;
             }
             token->end_column = *column;
             return token;

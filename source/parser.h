@@ -14,4 +14,6 @@ Expression* parseIdentifier(Tokens* tokens);
 Expression* parseNumber(Tokens* tokens);
 Expression* parseExpression(Tokens* tokens);
 
+Expression* parseIf(Tokens* tokens);
+
 #endif // _PARSER_H

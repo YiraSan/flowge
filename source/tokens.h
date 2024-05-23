@@ -13,6 +13,8 @@ enum TokenType {
     tok_eof,
 
     tok_fn,
+    tok_if,
+    tok_else,
 
     tok_identifier,
     tok_number,

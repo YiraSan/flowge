@@ -42,6 +42,7 @@ public:
     llvm::Value* get_value(std::string name);
 
     void add_function(Function* function);
+    Function* get_function(std::string name);
 
 };
 

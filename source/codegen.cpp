@@ -88,6 +88,21 @@ void Level::add_function(Function* function) {
 
 }
 
+Function* Level::get_function(std::string name) {
+    if (this->functions.find(name) != this->functions.end()) {
+        return this->functions[name];
+    }
+
+    if (this->parent != nullptr) {
+        Function* p = this->parent->get_function(name);
+        if (p != nullptr) {
+            return p;
+        }
+    }
+
+    return nullptr;
+}
+
 Codegen::Codegen() {
     this->llvm_context = std::make_unique<llvm::LLVMContext>();
     this->llvm_module = std::make_unique<llvm::Module>("flowge", *this->llvm_context);
@@ -181,7 +196,14 @@ llvm::Value* BinaryTreeExpression::codegen(Level* level, std::string return_type
 }
 
 llvm::Value* CallExpression::codegen(Level* level, std::string return_type) {
-    return nullptr;
+    llvm::Function* fn = level->get_function(this->ref->ref)->llvm_fn;
+    // todo check if fn exists
+    std::vector<llvm::Value *> args;
+    // todo check correct number of args
+    for (int i = 0, e = this->expressions.size(); i != e; i++) {
+        args.push_back(this->expressions[i]->codegen(level, return_type));
+    }
+    return level->codegen->llvm_builder->CreateCall(fn, args, "calltmp");
 }
 
 llvm::Value* ReturnExpression::codegen(Level* level, std::string return_type) {
@@ -197,8 +219,16 @@ llvm::Value* ReturnExpression::codegen(Level* level, std::string return_type) {
 }
 
 llvm::Value* BlockExpression::codegen(Level* level, std::string return_type) {
+    // make sure blocks are isolated
+    this->level = level->make_sub();
     for (size_t i = 0; i < this->expressions.size(); i++) {
-        this->expressions[i]->codegen(level, return_type);
+        this->expressions[i]->codegen(this->level, return_type);
     }
+    return nullptr;
+}
+
+llvm::Value* IfExpression::codegen(Level* level, std::string return_type) {
+    std::cout << "unsupported if expression" << std::endl;
+    exit(EXIT_FAILURE);
     return nullptr;
 }

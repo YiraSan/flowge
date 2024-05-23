@@ -73,6 +73,16 @@ public:
     llvm::Value* codegen(Level* level, std::string return_type) override;
 };
 
+class IfExpression : public Expression {
+public:
+    size_t if_index;
+    Expression* condition;
+    Expression* expression;
+    Expression* else_;
+
+    llvm::Value* codegen(Level* level, std::string return_type) override;
+};
+
 struct FnParameter {
     std::string name;
     size_t name_index;

@@ -255,6 +255,8 @@ Expression* parsePrimaryExpression(Tokens* tokens) {
             tokens->println("todo: unary operator", tokens->index);
             exit(EXIT_FAILURE);
         }
+    } else if (current->type == tok_if) {
+        return parseIf(tokens);
     }
     tokens->println("unexpected token", tokens->index);
     exit(EXIT_FAILURE);
@@ -289,4 +291,18 @@ BlockExpression* parseBlock(Tokens* tokens) {
     }
     tokens->consume(); // eat '}'
     return block;
+}
+
+Expression* parseIf(Tokens* tokens) {
+    IfExpression* if_expr = new IfExpression();
+    tokens->next(); // eat 'if'
+    if_expr->condition = parseExpression(tokens);
+    if_expr->expression = parseExpression(tokens);
+    if (tokens->current()->type == tok_else) {
+        tokens->next(); // eat 'else'
+        if_expr->else_ = parseExpression(tokens);
+    } else {
+        if_expr->else_ = nullptr;
+    }
+    return if_expr;
 }
