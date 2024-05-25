@@ -1,0 +1,1 @@
+/opt/homebrew/Cellar/llvm/18.1.6/bin/clang++ -g source/main.cpp source/tokens.cpp source/parser.cpp source/codegen.cpp $(/opt/homebrew/Cellar/llvm/18.1.6/bin/llvm-config --cxxflags --ldflags --system-libs --libs core orcjit native) -o flowge.bin
